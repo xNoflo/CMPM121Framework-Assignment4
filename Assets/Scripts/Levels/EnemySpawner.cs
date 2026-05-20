@@ -32,6 +32,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
+        GameManager.Instance.LoadRelics();
         LoadEnemies();
         LoadLevels();
         CreateLevelButtons();
