@@ -1,6 +1,8 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using System.Linq;
 
 public class RewardScreenManager : MonoBehaviour
 {
@@ -12,6 +14,11 @@ public class RewardScreenManager : MonoBehaviour
     EnemySpawner spawner;
     GameManager.GameState configuredState;
     Spell rewardSpell;
+    Relic rewardRelic;
+    List<Relic> relicChoices = new List<Relic>();
+    Button[] relicChoiceButtons;
+    TextMeshProUGUI[] relicChoiceTexts;
+    Image[] relicChoiceIcons;
     SpellBuilder spellBuilder;
     PlayerController player;
     SpellUIContainer spellUIContainer;
@@ -27,8 +34,10 @@ public class RewardScreenManager : MonoBehaviour
         rewardIcon = CreateImage("RewardSpellIcon", new Vector2(-260, 45), new Vector2(64, 64), Color.white);
         rewardText = CreateText("RewardSpellText", new Vector2(70, 45), new Vector2(560, 135), 20, TextAlignmentOptions.Left);
         acceptButton = CreateButton("AcceptSpellButton", new Vector2(0, -105), new Vector2(180, 44), AcceptRewardSpell, out acceptButtonText);
+        CreateRelicChoiceUI();
         configuredState = GameManager.GameState.PREGAME;
         HideReward();
+        HideRelicChoices();
         statsText.gameObject.SetActive(false);
     }
 
@@ -44,6 +53,7 @@ public class RewardScreenManager : MonoBehaviour
             configuredState = state;
             statsText.gameObject.SetActive(false);
             HideReward();
+            HideRelicChoices();
             spellUIContainer?.CancelRewardReplacement();
         }
     }
@@ -58,13 +68,25 @@ public class RewardScreenManager : MonoBehaviour
 
         if (state == GameManager.GameState.WAVEEND)
         {
-            MakeReward();
+            RefreshReferences();
+
+            if (ShouldOfferRelicReward())
+            {
+                MakeRelicReward();
+            }
+            else
+            {
+                MakeSpellReward();
+            }
+
             SetActionButton("Next Wave", NextWave);
         }
         else
         {
             rewardSpell = null;
+            rewardRelic = null;
             HideReward();
+            HideRelicChoices();
             SetActionButton("Return to Start", spawner.ReturnToStart);
         }
     }
@@ -77,11 +99,20 @@ public class RewardScreenManager : MonoBehaviour
         return "Wave Complete!" + defeated;
     }
 
-    void MakeReward()
+    bool ShouldOfferRelicReward()
+    {
+        if (spawner == null || player == null) return false;
+        if (spawner.CurrentWave <= 0 || spawner.CurrentWave % 3 != 0) return false;
+        return GetAvailableRelics().Count > 0;
+    }
+
+    void MakeSpellReward()
     {
         RefreshReferences();
+        HideRelicChoices();
         if (player == null || player.spellcaster == null) return;
         rewardSpell = spellBuilder.BuildRandomSpell(player.spellcaster);
+        rewardRelic = null;
         rewardText.text = rewardSpell.GetName()
             + "\n" + rewardSpell.GetDescription()
             + "\nMana: " + rewardSpell.GetManaCost()
@@ -89,6 +120,70 @@ public class RewardScreenManager : MonoBehaviour
             + "  Cooldown: " + rewardSpell.GetCooldown().ToString("0.0");
         GameManager.Instance.spellIconManager.PlaceSprite(rewardSpell.GetIcon(), rewardIcon);
         ShowReward("Accept Spell", true);
+    }
+
+    void MakeRelicReward()
+    {
+        RefreshReferences();
+        rewardSpell = null;
+        rewardRelic = null;
+        HideReward();
+        relicChoices = PickRelicChoices(3);
+
+        statsText.text = "Choose one relic" + "\nEnemies defeated this wave: " + GameManager.Instance.enemiesDefeatedThisWave;
+        statsText.gameObject.SetActive(true);
+
+        for (int i = 0; i < relicChoiceButtons.Length; i++)
+        {
+            bool hasChoice = i < relicChoices.Count;
+            relicChoiceButtons[i].gameObject.SetActive(hasChoice);
+            relicChoiceIcons[i].gameObject.SetActive(hasChoice);
+            relicChoiceTexts[i].gameObject.SetActive(hasChoice);
+
+            if (!hasChoice) continue;
+
+            Relic relic = relicChoices[i];
+            relicChoiceTexts[i].text = relic.name + "\n" + relic.GetLabel();
+
+            if (GameManager.Instance.relicIconManager != null)
+                GameManager.Instance.relicIconManager.PlaceSprite(relic.sprite, relicChoiceIcons[i]);
+        }
+    }
+
+    List<Relic> GetAvailableRelics()
+    {
+        List<Relic> allRelics = GameManager.Instance.relic_definitions;
+        if (allRelics == null) return new List<Relic>();
+
+        HashSet<string> ownedNames = new HashSet<string>();
+
+        if (player != null && player.relics != null)
+        {
+            foreach (Relic ownedRelic in player.relics)
+            {
+                if (ownedRelic != null && !string.IsNullOrWhiteSpace(ownedRelic.name))
+                    ownedNames.Add(ownedRelic.name);
+            }
+        }
+
+        return allRelics
+            .Where(relic => relic != null && !string.IsNullOrWhiteSpace(relic.name) && !ownedNames.Contains(relic.name))
+            .ToList();
+    }
+
+    List<Relic> PickRelicChoices(int count)
+    {
+        List<Relic> available = GetAvailableRelics();
+        List<Relic> choices = new List<Relic>();
+
+        while (available.Count > 0 && choices.Count < count)
+        {
+            int index = Random.Range(0, available.Count);
+            choices.Add(new Relic(available[index]));
+            available.RemoveAt(index);
+        }
+
+        return choices;
     }
 
     void AcceptRewardSpell()
@@ -109,16 +204,34 @@ public class RewardScreenManager : MonoBehaviour
         ShowReward("Choose Slot", false);
     }
 
+    void AcceptRewardRelic(int index)
+    {
+        RefreshReferences();
+        if (player == null || index < 0 || index >= relicChoices.Count) return;
+
+        rewardRelic = relicChoices[index];
+
+        if (player.AddRelic(rewardRelic))
+        {
+            rewardRelic = null;
+            HideRelicChoices();
+            ShowWaveStats();
+        }
+    }
+
     void NextWave()
     {
         rewardSpell = null;
+        rewardRelic = null;
         HideReward();
+        HideRelicChoices();
         spellUIContainer?.CancelRewardReplacement();
         spawner.NextWave();
     }
 
     public void ShowWaveStats()
     {
+        statsText.text = MessageFor(GameManager.GameState.WAVEEND);
         statsText.gameObject.SetActive(true);
     }
 
@@ -127,6 +240,20 @@ public class RewardScreenManager : MonoBehaviour
         rewardText.gameObject.SetActive(false);
         rewardIcon.gameObject.SetActive(false);
         acceptButton.gameObject.SetActive(false);
+    }
+
+    void HideRelicChoices()
+    {
+        if (relicChoiceButtons == null) return;
+
+        foreach (Button button in relicChoiceButtons)
+            button.gameObject.SetActive(false);
+
+        foreach (Image icon in relicChoiceIcons)
+            icon.gameObject.SetActive(false);
+
+        foreach (TextMeshProUGUI text in relicChoiceTexts)
+            text.gameObject.SetActive(false);
     }
 
     void SetActionButton(string text, UnityEngine.Events.UnityAction action)
@@ -150,6 +277,23 @@ public class RewardScreenManager : MonoBehaviour
             player = GameManager.Instance.player != null ? GameManager.Instance.player.GetComponent<PlayerController>() : FindFirstObjectByType<PlayerController>();
         if (spellUIContainer == null)
             spellUIContainer = FindFirstObjectByType<SpellUIContainer>();
+    }
+
+    void CreateRelicChoiceUI()
+    {
+        relicChoiceButtons = new Button[3];
+        relicChoiceTexts = new TextMeshProUGUI[3];
+        relicChoiceIcons = new Image[3];
+
+        for (int i = 0; i < 3; i++)
+        {
+            int choiceIndex = i;
+            float x = -230 + i * 230;
+            relicChoiceIcons[i] = CreateImage("RelicChoiceIcon" + i, new Vector2(x, 65), new Vector2(56, 56), Color.white);
+            relicChoiceTexts[i] = CreateText("RelicChoiceText" + i, new Vector2(x, -5), new Vector2(200, 120), 16, TextAlignmentOptions.Center);
+            relicChoiceButtons[i] = CreateButton("RelicChoiceButton" + i, new Vector2(x, -115), new Vector2(160, 40), () => AcceptRewardRelic(choiceIndex), out TextMeshProUGUI buttonText);
+            buttonText.text = "Take Relic";
+        }
     }
 
     TextMeshProUGUI CreateText(string name, Vector2 position, Vector2 size, int fontSize, TextAlignmentOptions alignment)
