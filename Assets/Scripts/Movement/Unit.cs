@@ -8,6 +8,7 @@ public class Unit : MonoBehaviour
     public Vector2 movement;
     public float distance;
     public event Action<float> OnMove;
+    bool wasMoving;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -18,14 +19,30 @@ public class Unit : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
+        bool isMoving = movement.sqrMagnitude > 0.01f;
+
         Move(new Vector2(movement.x, 0) * Time.fixedDeltaTime);
         Move(new Vector2(0, movement.y) * Time.fixedDeltaTime);
-        distance += movement.magnitude*Time.fixedDeltaTime;
+        distance += movement.magnitude * Time.fixedDeltaTime;
+
         if (distance > 0.5f)
         {
             OnMove?.Invoke(distance);
+
+            if (GetComponent<PlayerController>() != null)
+            {
+                EventBus.Instance.DoPlayerMoved(distance);
+            }
+
             distance = 0;
         }
+
+        if (wasMoving && !isMoving && GetComponent<PlayerController>() != null)
+        {
+            EventBus.Instance.DoPlayerStoppedMoving();
+        }
+
+        wasMoving = isMoving;
     }
 
     public void Move(Vector2 ds)
