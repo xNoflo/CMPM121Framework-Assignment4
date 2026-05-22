@@ -26,6 +26,7 @@ public class PlayerController : MonoBehaviour
 
     public void StartLevel()
     {
+        relics.Clear();
         LoadPlayerClass(DEFAULT_CLASS_ID);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         StartCoroutine(spellcaster.ManaRegeneration());
