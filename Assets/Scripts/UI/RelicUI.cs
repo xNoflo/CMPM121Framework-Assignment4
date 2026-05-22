@@ -11,24 +11,30 @@ public class RelicUI : MonoBehaviour
     public GameObject highlight;
     public TextMeshProUGUI label;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        // if a player has relics, this is how you *could* show them
-        /*
-        Relic r = player.relics[index];
-        GameManager.Instance.relicIconManager.PlaceSprite(r.sprite, icon);
-        */
+        Refresh();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        // Relics could have labels and/or an active-status
-        /*
-        Relic r = player.relics[index];
-        label.text = r.GetLabel();
-        highlight.SetActive(r.IsActive());
-        */
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        if (player == null || index < 0 || index >= player.relics.Count) return;
+
+        Relic relic = player.relics[index];
+        if (relic == null) return;
+
+        if (icon != null && GameManager.Instance.relicIconManager != null)
+            GameManager.Instance.relicIconManager.PlaceSprite(relic.sprite, icon);
+
+        if (label != null)
+            label.text = relic.GetLabel();
+
+        if (highlight != null)
+            highlight.SetActive(relic.IsActive());
     }
 }

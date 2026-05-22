@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
     public SpellUIContainer spellUIContainer;
     public int speed;
     public Unit unit;
+    public List<Relic> relics = new List<Relic>();
 
     const string DEFAULT_CLASS_ID = "mage";
     JObject selectedClassAttributes;
@@ -25,6 +26,7 @@ public class PlayerController : MonoBehaviour
 
     public void StartLevel()
     {
+        relics.Clear();
         LoadPlayerClass(DEFAULT_CLASS_ID);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         StartCoroutine(spellcaster.ManaRegeneration());
@@ -58,6 +60,25 @@ public class PlayerController : MonoBehaviour
 
         if (hp != null) hp.SetMaxHP(maxHealth);
         spellcaster?.SetWaveStats(maxMana, manaRegeneration, spellPower, wave);
+    }
+
+
+    public bool AddRelic(Relic relic)
+    {
+        if (relic == null) return false;
+
+        foreach (Relic ownedRelic in relics)
+        {
+            if (ownedRelic != null && ownedRelic.name == relic.name)
+            {
+                Debug.Log("Already owns relic: " + relic.name);
+                return false;
+            }
+        }
+
+        relics.Add(relic);
+        EventBus.Instance.DoRelicPickup(relic);
+        return true;
     }
 
     public void EquipSpell(Spell newSpell)

@@ -20,6 +20,7 @@ public class EnemySpawner : MonoBehaviour
     private List<LevelDefinition> levels = new List<LevelDefinition>();
     private LevelDefinition selectedLevel;
     private int currentWave = 0;
+    public int CurrentWave { get { return currentWave; } }
 
     // Levels with waves <= 0 are treated as endless.
     public bool IsCurrentLevelComplete
