@@ -13,6 +13,14 @@ public class Relic
         effect = definition.effect;
     }
 
+    public Relic(Relic source)
+    {
+        name = source.name;
+        sprite = source.sprite;
+        trigger = source.trigger;
+        effect = source.effect;
+    }
+
     public string GetLabel()
     {
         string triggerText = trigger != null ? trigger.description : "";
