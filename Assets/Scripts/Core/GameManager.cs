@@ -35,6 +35,7 @@ public class GameManager
     public EnemySpriteManager enemySpriteManager;
     public PlayerSpriteManager playerSpriteManager;
     public RelicIconManager relicIconManager;
+    public string selectedClassId = "mage";
 
     private List<GameObject> enemies;
     public int enemy_count { get { return enemies.Count; } }

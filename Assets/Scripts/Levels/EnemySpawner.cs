@@ -1,5 +1,6 @@
 using UnityEngine;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Globalization;
 using System.Reflection;
@@ -7,9 +8,16 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using System.Collections;
 using System.Linq;
+using TMPro;
 
 public class EnemySpawner : MonoBehaviour
 {
+    private const float CLASS_LABEL_Y = 82f;
+    private const float CLASS_BUTTON_Y = 42f;
+    private const float CLASS_BUTTON_X_SPACING = 180f;
+    private const float LEVEL_BUTTON_START_Y = -12f;
+    private const float LEVEL_BUTTON_Y_SPACING = 34f;
+
     public Image level_selector;
     public GameObject button;
     public GameObject enemy;
@@ -18,8 +26,10 @@ public class EnemySpawner : MonoBehaviour
     private List<Enemy> enemies = new List<Enemy>();
     private Dictionary<string, Enemy> enemiesByName = new Dictionary<string, Enemy>();
     private List<LevelDefinition> levels = new List<LevelDefinition>();
+    private List<string> classIds = new List<string>();
     private LevelDefinition selectedLevel;
     private int currentWave = 0;
+    private TextMeshProUGUI classSelectionLabel;
     public int CurrentWave { get { return currentWave; } }
 
     // Levels with waves <= 0 are treated as endless.
@@ -36,6 +46,7 @@ public class EnemySpawner : MonoBehaviour
         GameManager.Instance.LoadRelics();
         LoadEnemies();
         LoadLevels();
+        LoadClasses();
         CreateLevelButtons();
     }
 
@@ -64,16 +75,144 @@ public class EnemySpawner : MonoBehaviour
 
     private void CreateLevelButtons()
     {
+        CreateClassLabel();
+        CreateClassButtons();
         // Build the difficulty menu from JSON so that adding a level creates a button automatically in the UI..
         for (int i = 0; i < levels.Count; i++)
         {
             GameObject selector = Instantiate(button, level_selector.transform);
-            selector.transform.localPosition = new Vector3(0, 130 - i * 60);
+            PositionMenuButton(selector, new Vector2(0, LEVEL_BUTTON_START_Y - i * LEVEL_BUTTON_Y_SPACING));
 
             MenuSelectorController controller = selector.GetComponent<MenuSelectorController>();
             controller.spawner = this;
-            controller.SetLevel(levels[i].name);
+            controller.SetLevel(levels[i].name, GetLevelButtonLabel(levels[i].name));
         }
+    }
+
+    private void LoadClasses()
+    {
+        TextAsset classJson = Resources.Load<TextAsset>("classes");
+
+        if (classJson == null)
+        {
+            Debug.LogError("Could not find the file classes.json in Assets/Resources.");
+            classIds = new List<string> { GameManager.Instance.selectedClassId };
+            return;
+        }
+
+        try
+        {
+            JObject classDefinitions = JObject.Parse(classJson.text);
+            classIds = classDefinitions.Properties().Select(property => property.Name).ToList();
+        }
+        catch
+        {
+            Debug.LogError("Could not parse classes.json while building the class selection menu.");
+            classIds = new List<string> { GameManager.Instance.selectedClassId };
+        }
+
+        if (classIds.Count == 0)
+        {
+            classIds.Add(GameManager.Instance.selectedClassId);
+        }
+    }
+
+    private void CreateClassLabel()
+    {
+        classSelectionLabel = new GameObject("ClassSelectionLabel").AddComponent<TextMeshProUGUI>();
+        classSelectionLabel.transform.SetParent(level_selector.transform, false);
+        classSelectionLabel.fontSize = 24;
+        classSelectionLabel.alignment = TextAlignmentOptions.Center;
+        classSelectionLabel.color = Color.black;
+
+        RectTransform rect = classSelectionLabel.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(0, CLASS_LABEL_Y);
+        rect.sizeDelta = new Vector2(420, 28);
+
+        RefreshClassSelectionLabel();
+    }
+
+    private void CreateClassButtons()
+    {
+        for (int i = 0; i < classIds.Count; i++)
+        {
+            string classId = classIds[i];
+            GameObject selector = Instantiate(button, level_selector.transform);
+            PositionMenuButton(selector, new Vector2(-CLASS_BUTTON_X_SPACING + i * CLASS_BUTTON_X_SPACING, CLASS_BUTTON_Y));
+
+            MenuSelectorController controller = selector.GetComponent<MenuSelectorController>();
+            controller.spawner = this;
+            controller.SetAction(FormatClassButtonLabel(classId), () => SelectClass(classId));
+        }
+    }
+
+    private void SelectClass(string classId)
+    {
+        if (string.IsNullOrWhiteSpace(classId))
+        {
+            return;
+        }
+
+        GameManager.Instance.selectedClassId = classId;
+        RefreshClassSelectionLabel();
+        RefreshLevelButtonLabels();
+    }
+
+    private void RefreshClassSelectionLabel()
+    {
+        if (classSelectionLabel == null)
+        {
+            return;
+        }
+
+        classSelectionLabel.text = "Choose Class: " + FormatClassName(GameManager.Instance.selectedClassId);
+    }
+
+    private void RefreshLevelButtonLabels()
+    {
+        MenuSelectorController[] selectors = level_selector.GetComponentsInChildren<MenuSelectorController>(true);
+        foreach (MenuSelectorController selector in selectors)
+        {
+            if (selector == null || string.IsNullOrWhiteSpace(selector.level))
+            {
+                continue;
+            }
+
+            selector.SetLevel(selector.level, GetLevelButtonLabel(selector.level));
+        }
+    }
+
+    private string GetLevelButtonLabel(string levelName)
+    {
+        return levelName;
+    }
+
+    private string FormatClassButtonLabel(string classId)
+    {
+        return FormatClassName(classId);
+    }
+
+    private string FormatClassName(string classId)
+    {
+        if (string.IsNullOrWhiteSpace(classId))
+        {
+            return "Mage";
+        }
+
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(classId.Replace('_', ' '));
+    }
+
+    private void PositionMenuButton(GameObject selector, Vector2 anchoredPosition)
+    {
+        RectTransform rect = selector.GetComponent<RectTransform>();
+        if (rect == null)
+        {
+            return;
+        }
+
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = anchoredPosition;
     }
 
     void Update()

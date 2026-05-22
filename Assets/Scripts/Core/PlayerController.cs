@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     public List<Relic> relics = new List<Relic>();
 
     const string DEFAULT_CLASS_ID = "mage";
+    string selectedClassId = DEFAULT_CLASS_ID;
     JObject selectedClassAttributes;
 
     void Start()
@@ -27,13 +28,17 @@ public class PlayerController : MonoBehaviour
     public void StartLevel()
     {
         relics.Clear();
-        LoadPlayerClass(DEFAULT_CLASS_ID);
+        selectedClassId = string.IsNullOrWhiteSpace(GameManager.Instance.selectedClassId)
+            ? DEFAULT_CLASS_ID
+            : GameManager.Instance.selectedClassId;
+        LoadPlayerClass(selectedClassId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         StartCoroutine(spellcaster.ManaRegeneration());
 
         hp = new Hittable(100, Hittable.Team.PLAYER, gameObject);
         hp.OnDeath += Die;
         hp.team = Hittable.Team.PLAYER;
+        ApplyClassSprite();
         ApplyWaveStats(1);
 
         healthui.SetHealth(hp);
@@ -50,7 +55,7 @@ public class PlayerController : MonoBehaviour
 
     public void ApplyWaveStats(int wave)
     {
-        if (selectedClassAttributes == null) LoadPlayerClass(DEFAULT_CLASS_ID);
+        if (selectedClassAttributes == null) LoadPlayerClass(selectedClassId);
 
         int maxHealth = EvaluateClassInt("health", 100, wave);
         int maxMana = EvaluateClassInt("mana", 125, wave);
@@ -101,9 +106,10 @@ public class PlayerController : MonoBehaviour
 
         try
         {
-            selectedClassAttributes = JObject.Parse(classJson.text)[classId] as JObject;
+            selectedClassId = string.IsNullOrWhiteSpace(classId) ? DEFAULT_CLASS_ID : classId;
+            selectedClassAttributes = JObject.Parse(classJson.text)[selectedClassId] as JObject;
             if (selectedClassAttributes == null)
-                Debug.LogError("Could not find player class '" + classId + "' in classes.json. Using fallback player stats.");
+                Debug.LogError("Could not find player class '" + selectedClassId + "' in classes.json. Using fallback player stats.");
         }
         catch
         {
@@ -117,6 +123,34 @@ public class PlayerController : MonoBehaviour
         JToken token = selectedClassAttributes?.SelectToken(field);
         if (token == null) return defaultValue;
         return Mathf.RoundToInt(RPNEvaluatorAdapter.Evaluate(token.ToString(), new Dictionary<string, float> { { "wave", wave } }));
+    }
+
+    void ApplyClassSprite()
+    {
+        if (selectedClassAttributes == null || GameManager.Instance.playerSpriteManager == null)
+        {
+            return;
+        }
+
+        JToken spriteToken = selectedClassAttributes.SelectToken("sprite");
+        if (spriteToken == null)
+        {
+            return;
+        }
+
+        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            return;
+        }
+
+        int spriteIndex = spriteToken.Value<int>();
+        if (spriteIndex < 0 || spriteIndex >= GameManager.Instance.playerSpriteManager.GetCount())
+        {
+            return;
+        }
+
+        spriteRenderer.sprite = GameManager.Instance.playerSpriteManager.Get(spriteIndex);
     }
 
     void Update()
