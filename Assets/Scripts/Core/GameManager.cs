@@ -38,6 +38,24 @@ public class GameManager
 
     private List<GameObject> enemies;
     public int enemy_count { get { return enemies.Count; } }
+    private List<Relic> relics;
+    public List<Relic> relic_definitions
+    {
+        get
+        {
+            if (relics == null)
+            {
+                relics = RelicLoader.LoadAll();
+            }
+
+            return relics;
+        }
+    }
+
+    public void LoadRelics()
+    {
+        relics = RelicLoader.LoadAll();
+    }
 
     public void AddEnemy(GameObject enemy)
     {
