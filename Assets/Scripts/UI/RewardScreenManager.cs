@@ -40,7 +40,7 @@ public class RewardScreenManager : MonoBehaviour
         rewardText.fontSizeMin = 12;
         rewardText.fontSizeMax = 16;
         rewardText.textWrappingMode = TextWrappingModes.Normal;
-        acceptButton = CreateButton("AcceptSpellButton", new Vector2(0, 12), new Vector2(170, 38), AcceptRewardSpell, out acceptButtonText);
+        acceptButton = CreateButton("AcceptSpellButton", new Vector2(0, 0), new Vector2(170, 38), AcceptRewardSpell, out acceptButtonText);
         CreateRelicChoiceUI();
         configuredState = GameManager.GameState.PREGAME;
         HideReward();

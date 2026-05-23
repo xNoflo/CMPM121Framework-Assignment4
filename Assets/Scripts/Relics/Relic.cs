@@ -106,6 +106,11 @@ public static class RelicRuntimeFactory
             return new RestoreHealthPercentRelicEffect(relic, owner);
         }
 
+        if (effectType == "gain-health-percent")
+        {
+            return new GainHealthPercentRelicEffect(relic, owner);
+        }
+
         if (effectType == "gain-armor")
         {
             return new GainArmorRelicEffect(relic, owner);
@@ -230,6 +235,28 @@ public class RestoreHealthPercentRelicEffect : RelicEffectBase
         float normalizedPercent = Mathf.Clamp01(percent / 100f);
         owner.hp.hp = Mathf.Max(1, Mathf.RoundToInt(owner.hp.max_hp * normalizedPercent));
         isAvailable = false;
+    }
+}
+
+public class GainHealthPercentRelicEffect : RelicEffectBase
+{
+    public override bool IsActive { get { return false; } }
+
+    public GainHealthPercentRelicEffect(Relic relic, PlayerController owner) : base(relic, owner)
+    {
+    }
+
+    public override void Activate()
+    {
+        if (owner?.hp == null || relic?.effect == null)
+        {
+            return;
+        }
+
+        int percent = owner.EvaluateRelicAmount(relic.effect.amount, 10);
+        float normalizedPercent = Mathf.Clamp01(percent / 100f);
+        int healAmount = Mathf.RoundToInt(owner.hp.max_hp * normalizedPercent);
+        owner.hp.hp = Mathf.Clamp(owner.hp.hp + healAmount, 0, owner.hp.max_hp);
     }
 }
 

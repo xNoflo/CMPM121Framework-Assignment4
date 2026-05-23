@@ -106,5 +106,18 @@
             "amount": "2",
             "duration": "3"
         }
+    },
+    {
+        "name": "Skeleton Fang",
+        "sprite": 9,
+        "trigger": {
+            "description": "When you kill an enemy",
+            "type": "on-kill"
+        },
+        "effect": {
+            "description": "restore 10% of your max health.",
+            "type": "gain-health-percent",
+            "amount": "10"
+        }
     }
 ]

@@ -1,20 +1,4 @@
 [
-
-    {
-    	"name": "Debug One Enemy",
-    	"waves": 20,
-    	"spawns": [
-        	{
-            	"enemy": "zombie",
-                "count": "1",
-            	"hp": "base",
-            	"delay": "0",
-            	"sequence": [1],
-            	"location": "random"
-        	}
-    	]
-    },
-
     {
         "name": "Easy",
         "waves": 10,
