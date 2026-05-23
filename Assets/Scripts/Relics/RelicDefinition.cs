@@ -14,6 +14,7 @@ public class RelicEffectDefinition
     public string description;
     public string type;
     public string amount;
+    public string duration;
     public string until;
     public string duration;
 }

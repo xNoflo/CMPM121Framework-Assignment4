@@ -376,10 +376,10 @@ public class SpawnHomingProjectileRelicEffect : RelicEffectBase
     }
 }
 
-
 public class TemporarySpeedRelicEffect : RelicEffectBase
 {
     bool isActive;
+    int activationGeneration;
 
     public override bool IsActive { get { return isActive; } }
 
@@ -395,24 +395,51 @@ public class TemporarySpeedRelicEffect : RelicEffectBase
         }
 
         int amount = owner.EvaluateRelicAmount(relic.effect.amount, 0);
-        float duration = 3f;
+        float duration = EvaluateDuration(3f);
 
-        if (!string.IsNullOrWhiteSpace(relic.effect.duration))
-        {
-            if (!float.TryParse(relic.effect.duration, out duration) || duration <= 0f)
-            {
-                duration = 3f;
-            }
-        }
+        activationGeneration++;
+        int generation = activationGeneration;
 
         owner.ApplyTemporarySpeedBoost(this, amount, duration);
         isActive = true;
+
+        if (CoroutineManager.Instance != null)
+        {
+            CoroutineManager.Instance.Run(DeactivateAfterDelay(generation, duration));
+        }
     }
 
     public override void Cleanup()
     {
+        activationGeneration++;
         owner?.RemoveRelicSpeedBonus(this);
         isActive = false;
+    }
+
+    IEnumerator DeactivateAfterDelay(int generation, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+
+        if (generation == activationGeneration)
+        {
+            owner?.RemoveRelicSpeedBonus(this);
+            isActive = false;
+        }
+    }
+
+    float EvaluateDuration(float defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(relic.effect.duration))
+        {
+            return defaultValue;
+        }
+
+        if (float.TryParse(relic.effect.duration, out float duration))
+        {
+            return Mathf.Max(0f, duration);
+        }
+
+        return Mathf.Max(0f, owner.EvaluateRelicAmount(relic.effect.duration, Mathf.RoundToInt(defaultValue)));
     }
 }
 
