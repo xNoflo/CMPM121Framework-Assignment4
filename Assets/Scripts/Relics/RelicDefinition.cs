@@ -16,6 +16,7 @@ public class RelicEffectDefinition
     public string amount;
     public string duration;
     public string until;
+    public string duration;
 }
 
 [Serializable]

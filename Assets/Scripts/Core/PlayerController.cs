@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.InputSystem;
+using System.Collections;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,8 +19,9 @@ public class PlayerController : MonoBehaviour
     public List<Relic> relics = new List<Relic>();
     readonly Dictionary<object, int> activeRelicSpellPowerBonuses = new Dictionary<object, int>();
     readonly Dictionary<object, int> activeRelicArmorBonuses = new Dictionary<object, int>();
-    readonly Dictionary<object, int> activeTemporarySpeedBonuses = new Dictionary<object, int>();
-    readonly Dictionary<object, Coroutine> temporarySpeedTimers = new Dictionary<object, Coroutine>();
+    readonly Dictionary<object, int> activeRelicSpeedBonuses = new Dictionary<object, int>();
+    readonly Dictionary<object, int> activeRelicSpeedGenerations = new Dictionary<object, int>();
+    Vector2 currentMoveInput;
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
@@ -36,7 +38,9 @@ public class PlayerController : MonoBehaviour
         ClearRelics();
         activeRelicSpellPowerBonuses.Clear();
         activeRelicArmorBonuses.Clear();
-        ClearTemporarySpeedBoosts();
+        activeRelicSpeedBonuses.Clear();
+        activeRelicSpeedGenerations.Clear();
+        currentMoveInput = Vector2.zero;
         LoadPlayerClass(classId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
@@ -148,67 +152,69 @@ public class PlayerController : MonoBehaviour
         return Mathf.Max(0, incomingDamage - armor);
     }
 
-    public int GetTemporarySpeedBonus()
+
+    public int GetRelicSpeedBonus()
     {
-        return activeTemporarySpeedBonuses.Values.Sum();
+        return activeRelicSpeedBonuses.Values.Sum();
     }
 
-    public float GetCurrentMoveSpeed()
+    public int GetCurrentMoveSpeed()
     {
-        return Mathf.Max(0, speed + GetTemporarySpeedBonus());
+        return Mathf.Max(0, speed + GetRelicSpeedBonus());
     }
 
     public void ApplyTemporarySpeedBoost(object source, int amount, float duration)
     {
-        if (source == null) return;
-
-        if (temporarySpeedTimers.TryGetValue(source, out Coroutine oldTimer) && oldTimer != null)
+        if (source == null || amount == 0 || duration <= 0f)
         {
-            StopCoroutine(oldTimer);
+            return;
         }
 
-        if (amount == 0) activeTemporarySpeedBonuses.Remove(source);
-        else activeTemporarySpeedBonuses[source] = amount;
+        activeRelicSpeedBonuses[source] = amount;
 
-        if (duration > 0f)
+        int generation = 1;
+        if (activeRelicSpeedGenerations.TryGetValue(source, out int existingGeneration))
         {
-            temporarySpeedTimers[source] = StartCoroutine(RemoveTemporarySpeedBoostAfterDelay(source, duration));
-        }
-    }
-
-    public void RemoveTemporarySpeedBoost(object source)
-    {
-        RemoveTemporarySpeedBoost(source, true);
-    }
-
-    void RemoveTemporarySpeedBoost(object source, bool stopTimer)
-    {
-        if (source == null) return;
-
-        if (stopTimer && temporarySpeedTimers.TryGetValue(source, out Coroutine timer) && timer != null)
-        {
-            StopCoroutine(timer);
+            generation = existingGeneration + 1;
         }
 
-        temporarySpeedTimers.Remove(source);
-        activeTemporarySpeedBonuses.Remove(source);
+        activeRelicSpeedGenerations[source] = generation;
+        ApplyMovementInput();
+        StartCoroutine(RemoveTemporarySpeedBoostAfterDelay(source, generation, duration));
     }
 
-    IEnumerator RemoveTemporarySpeedBoostAfterDelay(object source, float duration)
+    IEnumerator RemoveTemporarySpeedBoostAfterDelay(object source, int generation, float duration)
     {
         yield return new WaitForSeconds(duration);
-        RemoveTemporarySpeedBoost(source, false);
+
+        if (activeRelicSpeedGenerations.TryGetValue(source, out int currentGeneration) && currentGeneration == generation)
+        {
+            RemoveRelicSpeedBonus(source);
+        }
     }
 
-    void ClearTemporarySpeedBoosts()
+    public void RemoveRelicSpeedBonus(object source)
     {
-        foreach (Coroutine timer in temporarySpeedTimers.Values)
+        if (source == null) return;
+        activeRelicSpeedBonuses.Remove(source);
+        activeRelicSpeedGenerations.Remove(source);
+        ApplyMovementInput();
+    }
+
+    void ApplyMovementInput()
+    {
+        if (unit == null)
         {
-            if (timer != null) StopCoroutine(timer);
+            return;
         }
 
-        temporarySpeedTimers.Clear();
-        activeTemporarySpeedBonuses.Clear();
+        if (!CanPlayerAct())
+        {
+            unit.movement = Vector2.zero;
+            return;
+        }
+
+        unit.movement = currentMoveInput * GetCurrentMoveSpeed();
     }
 
     public int EvaluateRelicAmount(string expression, int defaultValue = 0)
@@ -230,6 +236,9 @@ public class PlayerController : MonoBehaviour
         }
 
         relics.Clear();
+        activeRelicSpeedBonuses.Clear();
+        activeRelicSpeedGenerations.Clear();
+        ApplyMovementInput();
     }
 
     public void EquipSpell(Spell newSpell)
@@ -300,6 +309,8 @@ public class PlayerController : MonoBehaviour
         if (keyboard.digit2Key.wasPressedThisFrame) SelectSpell(1);
         if (keyboard.digit3Key.wasPressedThisFrame) SelectSpell(2);
         if (keyboard.digit4Key.wasPressedThisFrame) SelectSpell(3);
+
+        ApplyMovementInput();
     }
 
     void SelectSpell(int index)
@@ -321,19 +332,23 @@ public class PlayerController : MonoBehaviour
 
     void OnMove(InputValue value)
     {
+        currentMoveInput = value.Get<Vector2>();
+
         if (!CanPlayerAct())
         {
+            currentMoveInput = Vector2.zero;
             unit.movement = Vector2.zero;
             return;
         }
 
-        unit.movement = value.Get<Vector2>() * GetCurrentMoveSpeed();
+        ApplyMovementInput();
     }
 
     void Die()
     {
         Debug.Log("You Lost");
         GameManager.Instance.state = GameManager.GameState.GAMEOVER;
+        currentMoveInput = Vector2.zero;
         unit.movement = Vector2.zero;
     }
 

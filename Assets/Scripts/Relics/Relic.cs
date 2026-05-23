@@ -396,6 +396,7 @@ public class TemporarySpeedRelicEffect : RelicEffectBase
 
         int amount = owner.EvaluateRelicAmount(relic.effect.amount, 0);
         float duration = EvaluateDuration(3f);
+
         activationGeneration++;
         int generation = activationGeneration;
 
@@ -411,7 +412,7 @@ public class TemporarySpeedRelicEffect : RelicEffectBase
     public override void Cleanup()
     {
         activationGeneration++;
-        owner?.RemoveTemporarySpeedBoost(this);
+        owner?.RemoveRelicSpeedBonus(this);
         isActive = false;
     }
 
@@ -421,7 +422,7 @@ public class TemporarySpeedRelicEffect : RelicEffectBase
 
         if (generation == activationGeneration)
         {
-            owner?.RemoveTemporarySpeedBoost(this);
+            owner?.RemoveRelicSpeedBonus(this);
             isActive = false;
         }
     }
