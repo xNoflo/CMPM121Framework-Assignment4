@@ -116,6 +116,11 @@ public static class RelicRuntimeFactory
             return new SpawnHomingProjectileRelicEffect(relic, owner);
         }
 
+        if (effectType == "temporary-speed")
+        {
+            return new TemporarySpeedRelicEffect(relic, owner);
+        }
+
         Debug.LogWarning("Unsupported relic effect type: " + relic.effect.type);
         return null;
     }
@@ -368,6 +373,72 @@ public class SpawnHomingProjectileRelicEffect : RelicEffectBase
                 }
             },
             3f);
+    }
+}
+
+public class TemporarySpeedRelicEffect : RelicEffectBase
+{
+    bool isActive;
+    int activationGeneration;
+
+    public override bool IsActive { get { return isActive; } }
+
+    public TemporarySpeedRelicEffect(Relic relic, PlayerController owner) : base(relic, owner)
+    {
+    }
+
+    public override void Activate()
+    {
+        if (owner == null || relic?.effect == null)
+        {
+            return;
+        }
+
+        int amount = owner.EvaluateRelicAmount(relic.effect.amount, 0);
+        float duration = EvaluateDuration(3f);
+        activationGeneration++;
+        int generation = activationGeneration;
+
+        owner.ApplyTemporarySpeedBoost(this, amount, duration);
+        isActive = true;
+
+        if (CoroutineManager.Instance != null)
+        {
+            CoroutineManager.Instance.Run(DeactivateAfterDelay(generation, duration));
+        }
+    }
+
+    public override void Cleanup()
+    {
+        activationGeneration++;
+        owner?.RemoveTemporarySpeedBoost(this);
+        isActive = false;
+    }
+
+    IEnumerator DeactivateAfterDelay(int generation, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+
+        if (generation == activationGeneration)
+        {
+            owner?.RemoveTemporarySpeedBoost(this);
+            isActive = false;
+        }
+    }
+
+    float EvaluateDuration(float defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(relic.effect.duration))
+        {
+            return defaultValue;
+        }
+
+        if (float.TryParse(relic.effect.duration, out float duration))
+        {
+            return Mathf.Max(0f, duration);
+        }
+
+        return Mathf.Max(0f, owner.EvaluateRelicAmount(relic.effect.duration, Mathf.RoundToInt(defaultValue)));
     }
 }
 
