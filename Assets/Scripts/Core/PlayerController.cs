@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 public class PlayerController : MonoBehaviour
 {
@@ -14,6 +15,7 @@ public class PlayerController : MonoBehaviour
     public int speed;
     public Unit unit;
     public List<Relic> relics = new List<Relic>();
+    readonly Dictionary<object, int> activeRelicSpellPowerBonuses = new Dictionary<object, int>();
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
@@ -27,9 +29,11 @@ public class PlayerController : MonoBehaviour
 
     public void StartLevel(string classId = DEFAULT_CLASS_ID)
     {
-        relics.Clear();
+        ClearRelics();
+        activeRelicSpellPowerBonuses.Clear();
         LoadPlayerClass(classId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
+        spellcaster.playerOwner = this;
         StartCoroutine(spellcaster.ManaRegeneration());
 
         hp = new Hittable(100, Hittable.Team.PLAYER, gameObject);
@@ -78,8 +82,49 @@ public class PlayerController : MonoBehaviour
         }
 
         relics.Add(relic);
+        relic.Initialize(this);
         EventBus.Instance.DoRelicPickup(relic);
         return true;
+    }
+
+    public int GetRelicSpellPowerBonus()
+    {
+        return activeRelicSpellPowerBonuses.Values.Sum();
+    }
+
+    public void SetRelicSpellPowerBonus(object source, int amount)
+    {
+        if (source == null) return;
+
+        if (amount == 0) activeRelicSpellPowerBonuses.Remove(source);
+        else activeRelicSpellPowerBonuses[source] = amount;
+    }
+
+    public void RemoveRelicSpellPowerBonus(object source)
+    {
+        if (source == null) return;
+        activeRelicSpellPowerBonuses.Remove(source);
+    }
+
+    public int EvaluateRelicAmount(string expression, int defaultValue = 0)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+        {
+            return defaultValue;
+        }
+
+        int wave = spellcaster != null ? spellcaster.wave : 1;
+        return Mathf.RoundToInt(RPNEvaluatorAdapter.Evaluate(expression, new Dictionary<string, float> { { "wave", wave } }));
+    }
+
+    void ClearRelics()
+    {
+        foreach (Relic relic in relics)
+        {
+            relic?.Cleanup();
+        }
+
+        relics.Clear();
     }
 
     public void EquipSpell(Spell newSpell)
