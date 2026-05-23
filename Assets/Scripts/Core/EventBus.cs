@@ -15,11 +15,47 @@ public class EventBus
     }
 
     public event Action<Vector3, Damage, Hittable> OnDamage;
+    public event Action<Damage, Hittable> OnPlayerDamaged;
+    public event Action<Damage, Hittable> OnEnemyDamaged;
+    public event Action<GameObject> OnEnemyKilled;
+    public event Action<float> OnPlayerMoved;
+    public event Action OnPlayerStoppedMoving;
+    public event Action<Spell> OnSpellCast;
     public event Action<Relic> OnRelicPickup;
     
     public void DoDamage(Vector3 where, Damage dmg, Hittable target)
     {
         OnDamage?.Invoke(where, dmg, target);
+    }
+
+    public void DoPlayerDamaged(Damage damage, Hittable target)
+    {
+        OnPlayerDamaged?.Invoke(damage, target);
+    }
+
+    public void DoEnemyDamaged(Damage damage, Hittable target)
+    {
+        OnEnemyDamaged?.Invoke(damage, target);
+    }
+
+    public void DoEnemyKilled(GameObject enemy)
+    {
+        OnEnemyKilled?.Invoke(enemy);
+    }
+
+    public void DoPlayerMoved(float distance)
+    {
+        OnPlayerMoved?.Invoke(distance);
+    }
+
+    public void DoPlayerStoppedMoving()
+    {
+        OnPlayerStoppedMoving?.Invoke();
+    }
+
+    public void DoSpellCast(Spell spell)
+    {
+        OnSpellCast?.Invoke(spell);
     }
 
     public void DoRelicPickup(Relic relic)

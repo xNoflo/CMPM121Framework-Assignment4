@@ -47,6 +47,7 @@ public class SpellCaster
         if (spell != null && mana >= spell.GetManaCost() && spell.IsReady())
         {
             mana -= spell.GetManaCost();
+            EventBus.Instance.DoSpellCast(spell);
             yield return spell.Cast(where, target, team, spell_power, wave);
         }
     }

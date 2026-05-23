@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     public List<Relic> relics = new List<Relic>();
 
     const string DEFAULT_CLASS_ID = "mage";
+    public string selectedClassId = DEFAULT_CLASS_ID;
     JObject selectedClassAttributes;
 
     void Start()
@@ -24,10 +25,10 @@ public class PlayerController : MonoBehaviour
         GameManager.Instance.player = gameObject;
     }
 
-    public void StartLevel()
+    public void StartLevel(string classId = DEFAULT_CLASS_ID)
     {
         relics.Clear();
-        LoadPlayerClass(DEFAULT_CLASS_ID);
+        LoadPlayerClass(classId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         StartCoroutine(spellcaster.ManaRegeneration());
 
@@ -91,6 +92,9 @@ public class PlayerController : MonoBehaviour
 
     void LoadPlayerClass(string classId)
     {
+        if (string.IsNullOrWhiteSpace(classId)) classId = DEFAULT_CLASS_ID;
+        selectedClassId = classId;
+
         TextAsset classJson = Resources.Load<TextAsset>("classes");
         if (classJson == null)
         {
@@ -103,13 +107,30 @@ public class PlayerController : MonoBehaviour
         {
             selectedClassAttributes = JObject.Parse(classJson.text)[classId] as JObject;
             if (selectedClassAttributes == null)
+            {
                 Debug.LogError("Could not find player class '" + classId + "' in classes.json. Using fallback player stats.");
+                return;
+            }
+
+            ApplyClassSprite();
         }
         catch
         {
             Debug.LogError("Could not parse classes.json. Using fallback player stats.");
             selectedClassAttributes = null;
         }
+    }
+
+    void ApplyClassSprite()
+    {
+        if (selectedClassAttributes == null || GameManager.Instance.playerSpriteManager == null) return;
+
+        JToken spriteToken = selectedClassAttributes.SelectToken("sprite");
+        if (spriteToken == null) return;
+
+        int spriteIndex = Mathf.Max(0, spriteToken.ToObject<int>());
+        SpriteRenderer renderer = GetComponent<SpriteRenderer>();
+        if (renderer != null) renderer.sprite = GameManager.Instance.playerSpriteManager.Get(spriteIndex);
     }
 
     int EvaluateClassInt(string field, int defaultValue, int wave)
