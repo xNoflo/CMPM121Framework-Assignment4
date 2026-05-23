@@ -164,7 +164,7 @@ public class Spell
 
     protected virtual int GetSpellPower()
     {
-        return owner != null ? owner.spell_power : 0;
+        return owner != null ? owner.GetCurrentSpellPower() : 0;
     }
 
     protected virtual int GetWaveNumber()

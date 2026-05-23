@@ -8,6 +8,7 @@ public class SpellCaster
     public int mana, max_mana, mana_reg, spell_power, wave;
     public int activeSpellIndex;
     public Hittable.Team team;
+    public PlayerController playerOwner;
     public Spell spell;
     public List<Spell> spells = new List<Spell>();
 
@@ -44,12 +45,26 @@ public class SpellCaster
     public IEnumerator Cast(Vector3 where, Vector3 target)
     {
         spell = GetActiveSpell();
-        if (spell != null && mana >= spell.GetManaCost() && spell.IsReady())
+        if (spell != null)
         {
-            mana -= spell.GetManaCost();
+            int manaCost = spell.GetManaCost();
+            int currentSpellPower = GetCurrentSpellPower();
+
+            if (mana < manaCost || !spell.IsReady())
+            {
+                yield break;
+            }
+
+            mana -= manaCost;
             EventBus.Instance.DoSpellCast(spell);
-            yield return spell.Cast(where, target, team, spell_power, wave);
+            yield return spell.Cast(where, target, team, currentSpellPower, wave);
         }
+    }
+
+    public int GetCurrentSpellPower()
+    {
+        int relicBonus = playerOwner != null ? playerOwner.GetRelicSpellPowerBonus() : 0;
+        return Mathf.Max(0, spell_power + relicBonus);
     }
 
     public bool AddSpell(Spell newSpell)

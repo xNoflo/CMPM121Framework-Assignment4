@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Globalization;
 
 public class MenuSelectorController : MonoBehaviour
 {
@@ -14,6 +15,7 @@ public class MenuSelectorController : MonoBehaviour
         isClassButton = false;
         level = text;
         classId = "";
+        ConfigureAsLevelButton();
         label.text = text;
     }
 
@@ -22,7 +24,9 @@ public class MenuSelectorController : MonoBehaviour
         isClassButton = true;
         classId = id;
         level = "";
-        label.text = selected ? "Class: " + id + " ✓" : "Class: " + id;
+        ConfigureAsClassButton();
+        string className = FormatClassName(id);
+        label.text = selected ? "Class: " + className + " *" : "Class: " + className;
     }
 
     public void StartLevel()
@@ -34,5 +38,33 @@ public class MenuSelectorController : MonoBehaviour
         }
 
         spawner.StartLevel(level);
+    }
+
+    void ConfigureAsLevelButton()
+    {
+        if (label == null) return;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 11;
+        label.fontSizeMax = 20;
+        label.alignment = TextAlignmentOptions.Center;
+    }
+
+    void ConfigureAsClassButton()
+    {
+        if (label == null) return;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 10;
+        label.fontSizeMax = 16;
+        label.alignment = TextAlignmentOptions.Center;
+    }
+
+    string FormatClassName(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return "";
+        }
+
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(id.ToLowerInvariant().Replace("_", " "));
     }
 }
