@@ -29,6 +29,17 @@ public class Hittable
         if (hp <= 0)
         {
             hp = 0;
+
+            if (team == Team.PLAYER)
+            {
+                EventBus.Instance.DoPlayerLethalDamage(this);
+
+                if (hp > 0)
+                {
+                    return;
+                }
+            }
+
             OnDeath?.Invoke();
         }
     }

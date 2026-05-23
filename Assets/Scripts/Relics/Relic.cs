@@ -101,6 +101,11 @@ public static class RelicRuntimeFactory
             return new GainSpellPowerRelicEffect(relic, owner);
         }
 
+        if (effectType == "restore-health-percent")
+        {
+            return new RestoreHealthPercentRelicEffect(relic, owner);
+        }
+
         Debug.LogWarning("Unsupported relic effect type: " + relic.effect.type);
         return null;
     }
@@ -127,6 +132,11 @@ public static class RelicRuntimeFactory
         if (triggerType == "stand-still")
         {
             return new StandStillRelicTrigger(relic, effect);
+        }
+
+        if (triggerType == "on-lethal-damage")
+        {
+            return new PlayerLethalDamageRelicTrigger(effect);
         }
 
         Debug.LogWarning("Unsupported relic trigger type: " + relic.trigger.type);
@@ -176,6 +186,30 @@ public class GainManaRelicEffect : RelicEffectBase
 
         int amount = owner.EvaluateRelicAmount(relic.effect.amount, 0);
         owner.spellcaster.mana = Mathf.Clamp(owner.spellcaster.mana + amount, 0, owner.spellcaster.max_mana);
+    }
+}
+
+public class RestoreHealthPercentRelicEffect : RelicEffectBase
+{
+    bool isAvailable = true;
+
+    public override bool IsActive { get { return isAvailable; } }
+
+    public RestoreHealthPercentRelicEffect(Relic relic, PlayerController owner) : base(relic, owner)
+    {
+    }
+
+    public override void Activate()
+    {
+        if (!isAvailable || owner?.hp == null || relic?.effect == null)
+        {
+            return;
+        }
+
+        int percent = owner.EvaluateRelicAmount(relic.effect.amount, 60);
+        float normalizedPercent = Mathf.Clamp01(percent / 100f);
+        owner.hp.hp = Mathf.Max(1, Mathf.RoundToInt(owner.hp.max_hp * normalizedPercent));
+        isAvailable = false;
     }
 }
 
@@ -288,6 +322,31 @@ public class EnemyKilledRelicTrigger : IRelicTrigger
     }
 
     void HandleEnemyKilled(GameObject enemy)
+    {
+        effect?.Activate();
+    }
+}
+
+public class PlayerLethalDamageRelicTrigger : IRelicTrigger
+{
+    readonly IRelicEffect effect;
+
+    public PlayerLethalDamageRelicTrigger(IRelicEffect effect)
+    {
+        this.effect = effect;
+    }
+
+    public void Register()
+    {
+        EventBus.Instance.OnPlayerLethalDamage += HandlePlayerLethalDamage;
+    }
+
+    public void Unregister()
+    {
+        EventBus.Instance.OnPlayerLethalDamage -= HandlePlayerLethalDamage;
+    }
+
+    void HandlePlayerLethalDamage(Hittable target)
     {
         effect?.Activate();
     }

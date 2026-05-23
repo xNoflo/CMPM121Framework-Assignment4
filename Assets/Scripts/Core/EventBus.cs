@@ -17,6 +17,7 @@ public class EventBus
     public event Action<Vector3, Damage, Hittable> OnDamage;
     public event Action<Damage, Hittable> OnPlayerDamaged;
     public event Action<Damage, Hittable> OnEnemyDamaged;
+    public event Action<Hittable> OnPlayerLethalDamage;
     public event Action<GameObject> OnEnemyKilled;
     public event Action<float> OnPlayerMoved;
     public event Action OnPlayerStoppedMoving;
@@ -36,6 +37,11 @@ public class EventBus
     public void DoEnemyDamaged(Damage damage, Hittable target)
     {
         OnEnemyDamaged?.Invoke(damage, target);
+    }
+
+    public void DoPlayerLethalDamage(Hittable target)
+    {
+        OnPlayerLethalDamage?.Invoke(target);
     }
 
     public void DoEnemyKilled(GameObject enemy)

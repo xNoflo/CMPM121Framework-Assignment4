@@ -53,5 +53,18 @@
             "type": "gain-mana",
             "amount": "25"
         }
+    },
+    {
+        "name": "Phoenix Heart",
+        "sprite": 5,
+        "trigger": {
+            "description": "When you would die",
+            "type": "on-lethal-damage"
+        },
+        "effect": {
+            "description": "prevent death and restore 60% HP. This relic can only be used once.",
+            "type": "restore-health-percent",
+            "amount": "60"
+        }
     }
 ]
