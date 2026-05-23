@@ -6,6 +6,9 @@ using System.Linq;
 
 public class RewardScreenManager : MonoBehaviour
 {
+    const float SPELL_SECTION_Y = 82f;
+    const float RELIC_SECTION_Y = -62f;
+
     public GameObject rewardUI;
 
     TextMeshProUGUI statsText, rewardText, actionButtonText, acceptButtonText;
@@ -30,10 +33,14 @@ public class RewardScreenManager : MonoBehaviour
         actionButton = rewardUI.GetComponentInChildren<Button>(true);
         actionButtonText = actionButton != null ? actionButton.GetComponentInChildren<TextMeshProUGUI>(true) : null;
 
-        statsText = CreateText("WaveStatsText", new Vector2(0, 145), new Vector2(600, 70), 26, TextAlignmentOptions.Center);
-        rewardIcon = CreateImage("RewardSpellIcon", new Vector2(-260, 45), new Vector2(64, 64), Color.white);
-        rewardText = CreateText("RewardSpellText", new Vector2(70, 45), new Vector2(560, 135), 20, TextAlignmentOptions.Left);
-        acceptButton = CreateButton("AcceptSpellButton", new Vector2(0, -105), new Vector2(180, 44), AcceptRewardSpell, out acceptButtonText);
+        statsText = CreateText("WaveStatsText", new Vector2(0, 160), new Vector2(600, 60), 24, TextAlignmentOptions.Center);
+        rewardIcon = CreateImage("RewardSpellIcon", new Vector2(-245, SPELL_SECTION_Y + 6), new Vector2(56, 56), Color.white);
+        rewardText = CreateText("RewardSpellText", new Vector2(35, SPELL_SECTION_Y), new Vector2(500, 92), 16, TextAlignmentOptions.Left);
+        rewardText.enableAutoSizing = true;
+        rewardText.fontSizeMin = 12;
+        rewardText.fontSizeMax = 16;
+        rewardText.textWrappingMode = TextWrappingModes.Normal;
+        acceptButton = CreateButton("AcceptSpellButton", new Vector2(0, 12), new Vector2(170, 38), AcceptRewardSpell, out acceptButtonText);
         CreateRelicChoiceUI();
         configuredState = GameManager.GameState.PREGAME;
         HideReward();
@@ -69,14 +76,16 @@ public class RewardScreenManager : MonoBehaviour
         if (state == GameManager.GameState.WAVEEND)
         {
             RefreshReferences();
+            rewardSpell = null;
+            rewardRelic = null;
+            HideReward();
+            HideRelicChoices();
+
+            MakeSpellReward();
 
             if (ShouldOfferRelicReward())
             {
                 MakeRelicReward();
-            }
-            else
-            {
-                MakeSpellReward();
             }
 
             SetActionButton("Next Wave", NextWave);
@@ -109,10 +118,8 @@ public class RewardScreenManager : MonoBehaviour
     void MakeSpellReward()
     {
         RefreshReferences();
-        HideRelicChoices();
         if (player == null || player.spellcaster == null) return;
         rewardSpell = spellBuilder.BuildRandomSpell(player.spellcaster);
-        rewardRelic = null;
         rewardText.text = rewardSpell.GetName()
             + "\n" + rewardSpell.GetDescription()
             + "\nMana: " + rewardSpell.GetManaCost()
@@ -125,9 +132,7 @@ public class RewardScreenManager : MonoBehaviour
     void MakeRelicReward()
     {
         RefreshReferences();
-        rewardSpell = null;
         rewardRelic = null;
-        HideReward();
         relicChoices = PickRelicChoices(3);
 
         statsText.text = "Choose one relic" + "\nEnemies defeated this wave: " + GameManager.Instance.enemiesDefeatedThisWave;
@@ -195,7 +200,7 @@ public class RewardScreenManager : MonoBehaviour
         {
             rewardSpell = null;
             HideReward();
-            ShowWaveStats();
+            UpdateWaveEndDisplay();
             spellUIContainer?.Refresh();
             return;
         }
@@ -215,7 +220,8 @@ public class RewardScreenManager : MonoBehaviour
         {
             rewardRelic = null;
             HideRelicChoices();
-            ShowWaveStats();
+            relicChoices.Clear();
+            UpdateWaveEndDisplay();
         }
     }
 
@@ -233,6 +239,27 @@ public class RewardScreenManager : MonoBehaviour
     {
         statsText.text = MessageFor(GameManager.GameState.WAVEEND);
         statsText.gameObject.SetActive(true);
+    }
+
+    void UpdateWaveEndDisplay()
+    {
+        bool hasSpellReward = rewardSpell != null;
+        bool hasRelicReward = relicChoices != null && relicChoices.Count > 0;
+
+        if (hasSpellReward || hasRelicReward)
+        {
+            string message = "Wave Complete!";
+
+            if (hasSpellReward && hasRelicReward) message = "Choose a spell and a relic";
+            else if (hasSpellReward) message = "Choose a spell";
+            else if (hasRelicReward) message = "Choose one relic";
+
+            statsText.text = message + "\nEnemies defeated this wave: " + GameManager.Instance.enemiesDefeatedThisWave;
+            statsText.gameObject.SetActive(true);
+            return;
+        }
+
+        ShowWaveStats();
     }
 
     public void HideReward()
@@ -259,6 +286,11 @@ public class RewardScreenManager : MonoBehaviour
     void SetActionButton(string text, UnityEngine.Events.UnityAction action)
     {
         actionButtonText.text = text;
+        RectTransform rect = actionButton.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchoredPosition = text == "Next Wave" ? new Vector2(0, -190) : new Vector2(0, -105);
+        }
         actionButton.onClick.AddListener(action);
     }
 
@@ -289,9 +321,13 @@ public class RewardScreenManager : MonoBehaviour
         {
             int choiceIndex = i;
             float x = -230 + i * 230;
-            relicChoiceIcons[i] = CreateImage("RelicChoiceIcon" + i, new Vector2(x, 65), new Vector2(56, 56), Color.white);
-            relicChoiceTexts[i] = CreateText("RelicChoiceText" + i, new Vector2(x, -5), new Vector2(200, 120), 16, TextAlignmentOptions.Center);
-            relicChoiceButtons[i] = CreateButton("RelicChoiceButton" + i, new Vector2(x, -115), new Vector2(160, 40), () => AcceptRewardRelic(choiceIndex), out TextMeshProUGUI buttonText);
+            relicChoiceIcons[i] = CreateImage("RelicChoiceIcon" + i, new Vector2(x, RELIC_SECTION_Y + 8), new Vector2(44, 44), Color.white);
+            relicChoiceTexts[i] = CreateText("RelicChoiceText" + i, new Vector2(x, RELIC_SECTION_Y - 38), new Vector2(180, 82), 13, TextAlignmentOptions.Center);
+            relicChoiceTexts[i].enableAutoSizing = true;
+            relicChoiceTexts[i].fontSizeMin = 10;
+            relicChoiceTexts[i].fontSizeMax = 13;
+            relicChoiceTexts[i].textWrappingMode = TextWrappingModes.Normal;
+            relicChoiceButtons[i] = CreateButton("RelicChoiceButton" + i, new Vector2(x, RELIC_SECTION_Y - 92), new Vector2(140, 34), () => AcceptRewardRelic(choiceIndex), out TextMeshProUGUI buttonText);
             buttonText.text = "Take Relic";
         }
     }
@@ -319,11 +355,15 @@ public class RewardScreenManager : MonoBehaviour
     Button CreateButton(string name, Vector2 position, Vector2 size, UnityEngine.Events.UnityAction action, out TextMeshProUGUI label)
     {
         Image image = CreateImage(name, position, size, new Color(0.66f, 0.38f, 0.17f, 1));
+        ApplyButtonVisualStyle(image);
         Button button = image.gameObject.AddComponent<Button>();
         button.onClick.AddListener(action);
         label = new GameObject(name + "Text").AddComponent<TextMeshProUGUI>();
         label.transform.SetParent(button.transform, false);
-        label.fontSize = 24;
+        label.fontSize = 18;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 11;
+        label.fontSizeMax = 18;
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.black;
         RectTransform rect = label.GetComponent<RectTransform>();
@@ -331,6 +371,27 @@ public class RewardScreenManager : MonoBehaviour
         rect.anchorMax = Vector2.one;
         rect.offsetMin = rect.offsetMax = Vector2.zero;
         return button;
+    }
+
+    void ApplyButtonVisualStyle(Image image)
+    {
+        if (image == null || actionButton == null)
+        {
+            return;
+        }
+
+        Image templateImage = actionButton.GetComponent<Image>();
+        if (templateImage == null)
+        {
+            return;
+        }
+
+        image.sprite = templateImage.sprite;
+        image.type = templateImage.type;
+        image.material = templateImage.material;
+        image.pixelsPerUnitMultiplier = templateImage.pixelsPerUnitMultiplier;
+        image.preserveAspect = templateImage.preserveAspect;
+        image.color = templateImage.color;
     }
 
     void SetRect(RectTransform rect, Vector2 position, Vector2 size)
