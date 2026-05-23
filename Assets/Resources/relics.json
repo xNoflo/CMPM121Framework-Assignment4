@@ -53,5 +53,19 @@
             "type": "gain-mana",
             "amount": "25"
         }
+    },
+    {
+        "name": "Quickdraw Charm",
+        "sprite": 0,
+        "trigger": {
+            "description": "After you cast a spell",
+            "type": "spell-cast"
+        },
+        "effect": {
+            "description": "gain +2 movement speed for 3 seconds.",
+            "type": "temporary-speed",
+            "amount": "2",
+            "duration": "3"
+        }
     }
 ]
