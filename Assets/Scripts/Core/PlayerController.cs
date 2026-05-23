@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     public Unit unit;
     public List<Relic> relics = new List<Relic>();
     readonly Dictionary<object, int> activeRelicSpellPowerBonuses = new Dictionary<object, int>();
+    readonly Dictionary<object, int> activeRelicSpeedBonuses = new Dictionary<object, int>();
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
@@ -31,6 +32,7 @@ public class PlayerController : MonoBehaviour
     {
         ClearRelics();
         activeRelicSpellPowerBonuses.Clear();
+        activeRelicSpeedBonuses.Clear();
         LoadPlayerClass(classId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
@@ -92,6 +94,11 @@ public class PlayerController : MonoBehaviour
         return activeRelicSpellPowerBonuses.Values.Sum();
     }
 
+    public int GetCurrentSpeed()
+    {
+        return Mathf.Max(0, speed + activeRelicSpeedBonuses.Values.Sum());
+    }
+
     public void SetRelicSpellPowerBonus(object source, int amount)
     {
         if (source == null) return;
@@ -104,6 +111,20 @@ public class PlayerController : MonoBehaviour
     {
         if (source == null) return;
         activeRelicSpellPowerBonuses.Remove(source);
+    }
+
+    public void SetRelicSpeedBonus(object source, int amount)
+    {
+        if (source == null) return;
+
+        if (amount == 0) activeRelicSpeedBonuses.Remove(source);
+        else activeRelicSpeedBonuses[source] = amount;
+    }
+
+    public void RemoveRelicSpeedBonus(object source)
+    {
+        if (source == null) return;
+        activeRelicSpeedBonuses.Remove(source);
     }
 
     public int EvaluateRelicAmount(string expression, int defaultValue = 0)
@@ -222,7 +243,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        unit.movement = value.Get<Vector2>() * speed;
+        unit.movement = value.Get<Vector2>() * GetCurrentSpeed();
     }
 
     void Die()
