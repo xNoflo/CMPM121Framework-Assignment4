@@ -116,6 +116,11 @@ public static class RelicRuntimeFactory
             return new SpawnHomingProjectileRelicEffect(relic, owner);
         }
 
+        if (effectType == "temporary-speed")
+        {
+            return new TemporarySpeedRelicEffect(relic, owner);
+        }
+
         Debug.LogWarning("Unsupported relic effect type: " + relic.effect.type);
         return null;
     }
@@ -368,6 +373,46 @@ public class SpawnHomingProjectileRelicEffect : RelicEffectBase
                 }
             },
             3f);
+    }
+}
+
+
+public class TemporarySpeedRelicEffect : RelicEffectBase
+{
+    bool isActive;
+
+    public override bool IsActive { get { return isActive; } }
+
+    public TemporarySpeedRelicEffect(Relic relic, PlayerController owner) : base(relic, owner)
+    {
+    }
+
+    public override void Activate()
+    {
+        if (owner == null || relic?.effect == null)
+        {
+            return;
+        }
+
+        int amount = owner.EvaluateRelicAmount(relic.effect.amount, 0);
+        float duration = 3f;
+
+        if (!string.IsNullOrWhiteSpace(relic.effect.duration))
+        {
+            if (!float.TryParse(relic.effect.duration, out duration) || duration <= 0f)
+            {
+                duration = 3f;
+            }
+        }
+
+        owner.ApplyTemporarySpeedBoost(this, amount, duration);
+        isActive = true;
+    }
+
+    public override void Cleanup()
+    {
+        owner?.RemoveRelicSpeedBonus(this);
+        isActive = false;
     }
 }
 
