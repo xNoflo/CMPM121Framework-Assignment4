@@ -14,6 +14,15 @@ public class Hittable
 
     public void Damage(Damage damage)
     {
+        if (team == Team.PLAYER && owner != null)
+        {
+            PlayerController player = owner.GetComponent<PlayerController>();
+            if (player != null)
+            {
+                damage.amount = player.ApplyRelicArmorToDamage(damage.amount);
+            }
+        }
+
         EventBus.Instance.DoDamage(owner.transform.position, damage, this);
 
         if (team == Team.PLAYER)

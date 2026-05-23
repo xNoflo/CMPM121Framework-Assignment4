@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     public Unit unit;
     public List<Relic> relics = new List<Relic>();
     readonly Dictionary<object, int> activeRelicSpellPowerBonuses = new Dictionary<object, int>();
+    readonly Dictionary<object, int> activeRelicArmorBonuses = new Dictionary<object, int>();
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
@@ -31,6 +32,7 @@ public class PlayerController : MonoBehaviour
     {
         ClearRelics();
         activeRelicSpellPowerBonuses.Clear();
+        activeRelicArmorBonuses.Clear();
         LoadPlayerClass(classId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
@@ -104,6 +106,42 @@ public class PlayerController : MonoBehaviour
     {
         if (source == null) return;
         activeRelicSpellPowerBonuses.Remove(source);
+    }
+
+    public int GetRelicArmorBonus()
+    {
+        return activeRelicArmorBonuses.Values.Sum();
+    }
+
+    public void SetRelicArmorBonus(object source, int amount)
+    {
+        if (source == null) return;
+
+        if (amount == 0) activeRelicArmorBonuses.Remove(source);
+        else activeRelicArmorBonuses[source] = amount;
+    }
+
+    public void RemoveRelicArmorBonus(object source)
+    {
+        if (source == null) return;
+        activeRelicArmorBonuses.Remove(source);
+    }
+
+    public int ApplyRelicArmorToDamage(int incomingDamage)
+    {
+        if (incomingDamage <= 0)
+        {
+            return 0;
+        }
+
+        int armor = GetRelicArmorBonus();
+        if (armor <= 0)
+        {
+            return incomingDamage;
+        }
+
+        activeRelicArmorBonuses.Clear();
+        return Mathf.Max(0, incomingDamage - armor);
     }
 
     public int EvaluateRelicAmount(string expression, int defaultValue = 0)

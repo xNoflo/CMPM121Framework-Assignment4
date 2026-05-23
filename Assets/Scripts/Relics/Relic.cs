@@ -106,6 +106,16 @@ public static class RelicRuntimeFactory
             return new RestoreHealthPercentRelicEffect(relic, owner);
         }
 
+        if (effectType == "gain-armor")
+        {
+            return new GainArmorRelicEffect(relic, owner);
+        }
+
+        if (effectType == "spawn-homing-projectile")
+        {
+            return new SpawnHomingProjectileRelicEffect(relic, owner);
+        }
+
         Debug.LogWarning("Unsupported relic effect type: " + relic.effect.type);
         return null;
     }
@@ -137,6 +147,11 @@ public static class RelicRuntimeFactory
         if (triggerType == "on-lethal-damage")
         {
             return new PlayerLethalDamageRelicTrigger(effect);
+        }
+
+        if (triggerType == "cast-spell")
+        {
+            return new SpellCastRelicTrigger(effect);
         }
 
         Debug.LogWarning("Unsupported relic trigger type: " + relic.trigger.type);
@@ -277,6 +292,85 @@ public class GainSpellPowerRelicEffect : RelicEffectBase
     }
 }
 
+public class GainArmorRelicEffect : RelicEffectBase
+{
+    bool isActive;
+
+    public override bool IsActive { get { return isActive; } }
+
+    public GainArmorRelicEffect(Relic relic, PlayerController owner) : base(relic, owner)
+    {
+    }
+
+    public override void Activate()
+    {
+        if (owner == null || relic?.effect == null)
+        {
+            return;
+        }
+
+        int amount = owner.EvaluateRelicAmount(relic.effect.amount, 0);
+        owner.SetRelicArmorBonus(this, amount);
+        isActive = true;
+        EventBus.Instance.OnPlayerDamaged -= HandlePlayerDamagedEnd;
+        EventBus.Instance.OnPlayerDamaged += HandlePlayerDamagedEnd;
+    }
+
+    public override void Cleanup()
+    {
+        Deactivate();
+    }
+
+    void HandlePlayerDamagedEnd(Damage damage, Hittable target)
+    {
+        Deactivate();
+    }
+
+    void Deactivate()
+    {
+        EventBus.Instance.OnPlayerDamaged -= HandlePlayerDamagedEnd;
+        owner?.RemoveRelicArmorBonus(this);
+        isActive = false;
+    }
+}
+
+public class SpawnHomingProjectileRelicEffect : RelicEffectBase
+{
+    public override bool IsActive { get { return false; } }
+
+    public SpawnHomingProjectileRelicEffect(Relic relic, PlayerController owner) : base(relic, owner)
+    {
+    }
+
+    public override void Activate()
+    {
+        if (owner == null || owner.spellcaster == null || GameManager.Instance.projectileManager == null)
+        {
+            return;
+        }
+
+        Vector3 where = owner.transform.position;
+        GameObject closestEnemy = GameManager.Instance.GetClosestEnemy(where);
+        Vector3 direction = closestEnemy != null ? closestEnemy.transform.position - where : Vector3.right;
+        int damageAmount = owner.EvaluateRelicAmount(relic.effect.amount, 40);
+
+        GameManager.Instance.projectileManager.CreateProjectile(
+            0,
+            "homing",
+            where,
+            direction,
+            18f,
+            (other, impact) =>
+            {
+                if (other.team != owner.spellcaster.team)
+                {
+                    other.Damage(new Damage(damageAmount, Damage.Type.ARCANE));
+                }
+            },
+            3f);
+    }
+}
+
 public class PlayerDamagedRelicTrigger : IRelicTrigger
 {
     readonly IRelicEffect effect;
@@ -347,6 +441,31 @@ public class PlayerLethalDamageRelicTrigger : IRelicTrigger
     }
 
     void HandlePlayerLethalDamage(Hittable target)
+    {
+        effect?.Activate();
+    }
+}
+
+public class SpellCastRelicTrigger : IRelicTrigger
+{
+    readonly IRelicEffect effect;
+
+    public SpellCastRelicTrigger(IRelicEffect effect)
+    {
+        this.effect = effect;
+    }
+
+    public void Register()
+    {
+        EventBus.Instance.OnSpellCast += HandleSpellCast;
+    }
+
+    public void Unregister()
+    {
+        EventBus.Instance.OnSpellCast -= HandleSpellCast;
+    }
+
+    void HandleSpellCast(Spell spell)
     {
         effect?.Activate();
     }

@@ -66,5 +66,31 @@
             "type": "restore-health-percent",
             "amount": "60"
         }
+    },
+    {
+        "name": "Iron Book",
+        "sprite": 10,
+        "trigger": {
+            "description": "When you kill an enemy",
+            "type": "on-kill"
+        },
+        "effect": {
+            "description": "gain 15 armor for the next hit you take.",
+            "type": "gain-armor",
+            "amount": "15"
+        }
+    },
+    {
+        "name": "Star Compass",
+        "sprite": 7,
+        "trigger": {
+            "description": "Whenever you cast a spell",
+            "type": "cast-spell"
+        },
+        "effect": {
+            "description": "spawn an extra homing projectile that deals 40 arcane damage.",
+            "type": "spawn-homing-projectile",
+            "amount": "40"
+        }
     }
 ]
