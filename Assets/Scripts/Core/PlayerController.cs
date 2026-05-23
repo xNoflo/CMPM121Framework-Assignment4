@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,9 @@ public class PlayerController : MonoBehaviour
     public List<Relic> relics = new List<Relic>();
     readonly Dictionary<object, int> activeRelicSpellPowerBonuses = new Dictionary<object, int>();
     readonly Dictionary<object, int> activeRelicArmorBonuses = new Dictionary<object, int>();
+    readonly Dictionary<object, int> activeRelicSpeedBonuses = new Dictionary<object, int>();
+    readonly Dictionary<object, int> activeRelicSpeedGenerations = new Dictionary<object, int>();
+    Vector2 currentMoveInput;
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
@@ -33,6 +37,9 @@ public class PlayerController : MonoBehaviour
         ClearRelics();
         activeRelicSpellPowerBonuses.Clear();
         activeRelicArmorBonuses.Clear();
+        activeRelicSpeedBonuses.Clear();
+        activeRelicSpeedGenerations.Clear();
+        currentMoveInput = Vector2.zero;
         LoadPlayerClass(classId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
@@ -144,6 +151,71 @@ public class PlayerController : MonoBehaviour
         return Mathf.Max(0, incomingDamage - armor);
     }
 
+
+    public int GetRelicSpeedBonus()
+    {
+        return activeRelicSpeedBonuses.Values.Sum();
+    }
+
+    public int GetCurrentMoveSpeed()
+    {
+        return Mathf.Max(0, speed + GetRelicSpeedBonus());
+    }
+
+    public void ApplyTemporarySpeedBoost(object source, int amount, float duration)
+    {
+        if (source == null || amount == 0 || duration <= 0f)
+        {
+            return;
+        }
+
+        activeRelicSpeedBonuses[source] = amount;
+
+        int generation = 1;
+        if (activeRelicSpeedGenerations.TryGetValue(source, out int existingGeneration))
+        {
+            generation = existingGeneration + 1;
+        }
+
+        activeRelicSpeedGenerations[source] = generation;
+        ApplyMovementInput();
+        StartCoroutine(RemoveTemporarySpeedBoostAfterDelay(source, generation, duration));
+    }
+
+    IEnumerator RemoveTemporarySpeedBoostAfterDelay(object source, int generation, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+
+        if (activeRelicSpeedGenerations.TryGetValue(source, out int currentGeneration) && currentGeneration == generation)
+        {
+            RemoveRelicSpeedBonus(source);
+        }
+    }
+
+    public void RemoveRelicSpeedBonus(object source)
+    {
+        if (source == null) return;
+        activeRelicSpeedBonuses.Remove(source);
+        activeRelicSpeedGenerations.Remove(source);
+        ApplyMovementInput();
+    }
+
+    void ApplyMovementInput()
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        if (!CanPlayerAct())
+        {
+            unit.movement = Vector2.zero;
+            return;
+        }
+
+        unit.movement = currentMoveInput * GetCurrentMoveSpeed();
+    }
+
     public int EvaluateRelicAmount(string expression, int defaultValue = 0)
     {
         if (string.IsNullOrWhiteSpace(expression))
@@ -163,6 +235,9 @@ public class PlayerController : MonoBehaviour
         }
 
         relics.Clear();
+        activeRelicSpeedBonuses.Clear();
+        activeRelicSpeedGenerations.Clear();
+        ApplyMovementInput();
     }
 
     public void EquipSpell(Spell newSpell)
@@ -233,6 +308,8 @@ public class PlayerController : MonoBehaviour
         if (keyboard.digit2Key.wasPressedThisFrame) SelectSpell(1);
         if (keyboard.digit3Key.wasPressedThisFrame) SelectSpell(2);
         if (keyboard.digit4Key.wasPressedThisFrame) SelectSpell(3);
+
+        ApplyMovementInput();
     }
 
     void SelectSpell(int index)
@@ -254,19 +331,23 @@ public class PlayerController : MonoBehaviour
 
     void OnMove(InputValue value)
     {
+        currentMoveInput = value.Get<Vector2>();
+
         if (!CanPlayerAct())
         {
+            currentMoveInput = Vector2.zero;
             unit.movement = Vector2.zero;
             return;
         }
 
-        unit.movement = value.Get<Vector2>() * speed;
+        ApplyMovementInput();
     }
 
     void Die()
     {
         Debug.Log("You Lost");
         GameManager.Instance.state = GameManager.GameState.GAMEOVER;
+        currentMoveInput = Vector2.zero;
         unit.movement = Vector2.zero;
     }
 
