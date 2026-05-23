@@ -101,6 +101,11 @@ public static class RelicRuntimeFactory
             return new GainSpellPowerRelicEffect(relic, owner);
         }
 
+        if (effectType == "temporary-speed")
+        {
+            return new TemporarySpeedRelicEffect(relic, owner);
+        }
+
         Debug.LogWarning("Unsupported relic effect type: " + relic.effect.type);
         return null;
     }
@@ -127,6 +132,11 @@ public static class RelicRuntimeFactory
         if (triggerType == "stand-still")
         {
             return new StandStillRelicTrigger(relic, effect);
+        }
+
+        if (triggerType == "spell-cast")
+        {
+            return new SpellCastRelicTrigger(effect);
         }
 
         Debug.LogWarning("Unsupported relic trigger type: " + relic.trigger.type);
@@ -240,6 +250,78 @@ public class GainSpellPowerRelicEffect : RelicEffectBase
     string NormalizeUntil()
     {
         return string.IsNullOrWhiteSpace(relic.effect.until) ? string.Empty : relic.effect.until.Trim().ToLowerInvariant();
+    }
+}
+
+
+public class TemporarySpeedRelicEffect : RelicEffectBase
+{
+    bool isActive;
+    int speedGeneration;
+
+    public override bool IsActive { get { return isActive; } }
+
+    public TemporarySpeedRelicEffect(Relic relic, PlayerController owner) : base(relic, owner)
+    {
+    }
+
+    public override void Activate()
+    {
+        if (owner == null || relic?.effect == null)
+        {
+            return;
+        }
+
+        int amount = owner.EvaluateRelicAmount(relic.effect.amount, 0);
+        float duration = GetDuration();
+
+        owner.SetRelicSpeedBonus(this, amount);
+        isActive = true;
+
+        speedGeneration++;
+        int generation = speedGeneration;
+
+        if (CoroutineManager.Instance != null)
+        {
+            CoroutineManager.Instance.Run(DeactivateAfterDelay(generation, duration));
+        }
+    }
+
+    public override void Cleanup()
+    {
+        Deactivate();
+    }
+
+    IEnumerator DeactivateAfterDelay(int generation, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+
+        if (generation == speedGeneration)
+        {
+            Deactivate();
+        }
+    }
+
+    void Deactivate()
+    {
+        speedGeneration++;
+        owner?.RemoveRelicSpeedBonus(this);
+        isActive = false;
+    }
+
+    float GetDuration()
+    {
+        float duration = 3f;
+
+        if (relic?.effect != null && !string.IsNullOrWhiteSpace(relic.effect.duration))
+        {
+            if (!float.TryParse(relic.effect.duration, out duration) || duration <= 0f)
+            {
+                duration = 3f;
+            }
+        }
+
+        return duration;
     }
 }
 
@@ -357,5 +439,31 @@ public class StandStillRelicTrigger : IRelicTrigger
         {
             effect?.Activate();
         }
+    }
+}
+
+
+public class SpellCastRelicTrigger : IRelicTrigger
+{
+    readonly IRelicEffect effect;
+
+    public SpellCastRelicTrigger(IRelicEffect effect)
+    {
+        this.effect = effect;
+    }
+
+    public void Register()
+    {
+        EventBus.Instance.OnSpellCast += HandleSpellCast;
+    }
+
+    public void Unregister()
+    {
+        EventBus.Instance.OnSpellCast -= HandleSpellCast;
+    }
+
+    void HandleSpellCast(Spell spell)
+    {
+        effect?.Activate();
     }
 }
