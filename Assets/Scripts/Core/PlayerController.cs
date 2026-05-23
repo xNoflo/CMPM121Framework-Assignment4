@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using UnityEngine.InputSystem;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
@@ -17,6 +18,8 @@ public class PlayerController : MonoBehaviour
     public List<Relic> relics = new List<Relic>();
     readonly Dictionary<object, int> activeRelicSpellPowerBonuses = new Dictionary<object, int>();
     readonly Dictionary<object, int> activeRelicArmorBonuses = new Dictionary<object, int>();
+    readonly Dictionary<object, int> activeTemporarySpeedBonuses = new Dictionary<object, int>();
+    readonly Dictionary<object, Coroutine> temporarySpeedTimers = new Dictionary<object, Coroutine>();
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
@@ -33,6 +36,7 @@ public class PlayerController : MonoBehaviour
         ClearRelics();
         activeRelicSpellPowerBonuses.Clear();
         activeRelicArmorBonuses.Clear();
+        ClearTemporarySpeedBoosts();
         LoadPlayerClass(classId);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
@@ -142,6 +146,69 @@ public class PlayerController : MonoBehaviour
 
         activeRelicArmorBonuses.Clear();
         return Mathf.Max(0, incomingDamage - armor);
+    }
+
+    public int GetTemporarySpeedBonus()
+    {
+        return activeTemporarySpeedBonuses.Values.Sum();
+    }
+
+    public float GetCurrentMoveSpeed()
+    {
+        return Mathf.Max(0, speed + GetTemporarySpeedBonus());
+    }
+
+    public void ApplyTemporarySpeedBoost(object source, int amount, float duration)
+    {
+        if (source == null) return;
+
+        if (temporarySpeedTimers.TryGetValue(source, out Coroutine oldTimer) && oldTimer != null)
+        {
+            StopCoroutine(oldTimer);
+        }
+
+        if (amount == 0) activeTemporarySpeedBonuses.Remove(source);
+        else activeTemporarySpeedBonuses[source] = amount;
+
+        if (duration > 0f)
+        {
+            temporarySpeedTimers[source] = StartCoroutine(RemoveTemporarySpeedBoostAfterDelay(source, duration));
+        }
+    }
+
+    public void RemoveTemporarySpeedBoost(object source)
+    {
+        RemoveTemporarySpeedBoost(source, true);
+    }
+
+    void RemoveTemporarySpeedBoost(object source, bool stopTimer)
+    {
+        if (source == null) return;
+
+        if (stopTimer && temporarySpeedTimers.TryGetValue(source, out Coroutine timer) && timer != null)
+        {
+            StopCoroutine(timer);
+        }
+
+        temporarySpeedTimers.Remove(source);
+        activeTemporarySpeedBonuses.Remove(source);
+    }
+
+    IEnumerator RemoveTemporarySpeedBoostAfterDelay(object source, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        RemoveTemporarySpeedBoost(source, false);
+    }
+
+    void ClearTemporarySpeedBoosts()
+    {
+        foreach (Coroutine timer in temporarySpeedTimers.Values)
+        {
+            if (timer != null) StopCoroutine(timer);
+        }
+
+        temporarySpeedTimers.Clear();
+        activeTemporarySpeedBonuses.Clear();
     }
 
     public int EvaluateRelicAmount(string expression, int defaultValue = 0)
@@ -260,7 +327,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        unit.movement = value.Get<Vector2>() * speed;
+        unit.movement = value.Get<Vector2>() * GetCurrentMoveSpeed();
     }
 
     void Die()
