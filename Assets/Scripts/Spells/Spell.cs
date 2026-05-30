@@ -88,13 +88,33 @@ public class Spell
         int damage = GetModifiedDamage(context, spellPower, wave);
         Damage.Type damageType = GetDamageType();
 
-        if (lifetime > 0)
+        if (direction.sqrMagnitude <= 0)
         {
-            GameManager.Instance.projectileManager.CreateProjectile(sprite, trajectory, where, direction, speed, (other, impact) => OnHit(other, impact, damage, damageType, context, sprite, speed), lifetime);
+            direction = Vector3.right;
         }
-        else
+
+        bool hasSecondaryProjectile = definition != null && definition.HasField("secondary_projectile");
+        int shotCount = hasSecondaryProjectile ? 1 : GetProjectileCount(spellPower, wave);
+        float spray = GetSpray(spellPower, wave);
+
+        for (int i = 0; i < shotCount; i++)
         {
-            GameManager.Instance.projectileManager.CreateProjectile(sprite, trajectory, where, direction, speed, (other, impact) => OnHit(other, impact, damage, damageType, context, sprite, speed));
+            Vector3 shotDirection = direction;
+
+            if (spray > 0)
+            {
+                float sprayAngle = Random.Range(-spray / 2f, spray / 2f) * Mathf.Rad2Deg;
+                shotDirection = Quaternion.Euler(0, 0, sprayAngle) * shotDirection;
+            }
+
+            if (lifetime > 0)
+            {
+                GameManager.Instance.projectileManager.CreateProjectile(sprite, trajectory, where, shotDirection, speed, (other, impact) => OnHit(other, impact, damage, damageType, context, sprite, speed), lifetime);
+            }
+            else
+            {
+                GameManager.Instance.projectileManager.CreateProjectile(sprite, trajectory, where, shotDirection, speed, (other, impact) => OnHit(other, impact, damage, damageType, context, sprite, speed));
+            }
         }
 
         yield return new WaitForEndOfFrame();
@@ -104,11 +124,95 @@ public class Spell
     {
         if (other.team != team)
         {
+            if (context.stunDuration > 0f && other.owner != null)
+            {
+                EnemyController enemy = other.owner.GetComponent<EnemyController>();
+
+                if (enemy != null)
+                {
+                    enemy.Freeze(context.stunDuration);
+                }
+            }
+
             other.Damage(new Damage(damage, damageType));
+
+            if (HasSecondaryProjectile())
+            {
+                SpawnSecondaryProjectiles(impact, GetSpellPower(), GetWaveNumber(), context);
+            }
 
             if (context.splitOnHit)
             {
                 SpawnSplitProjectiles(impact, Mathf.Max(1, Mathf.RoundToInt(damage * context.splitDamageMultiplier)), damageType, sprite, speed * context.splitSpeedMultiplier, context.splitLifetime);
+            }
+        }
+    }
+
+    private bool HasSecondaryProjectile()
+    {
+        return definition != null && definition.HasField("secondary_projectile");
+    }
+
+    private int GetProjectileCount(int spellPower, int wave)
+    {
+        if (definition == null || !definition.HasField("N"))
+        {
+            return 1;
+        }
+
+        return Mathf.Max(1, definition.GetInt("N", 1, spellPower, wave));
+    }
+
+    private float GetSpray(int spellPower, int wave)
+    {
+        if (definition == null || !definition.HasField("spray"))
+        {
+            return 0f;
+        }
+
+        return Mathf.Max(0f, definition.GetFloat("spray", 0f, spellPower, wave));
+    }
+
+    private void SpawnSecondaryProjectiles(Vector3 impact, int spellPower, int wave, SpellModifierContext context)
+    {
+        if (definition == null)
+        {
+            return;
+        }
+
+        int totalShots = GetProjectileCount(spellPower, wave);
+        int sprite = Mathf.Max(0, definition.GetInt("secondary_projectile.sprite", GetProjectileSprite(spellPower, wave), spellPower, wave));
+        string trajectory = definition.GetString("secondary_projectile.trajectory", "straight");
+        float speed = Mathf.Max(1f, definition.GetFloat("secondary_projectile.speed", 10f, spellPower, wave));
+        float lifetime = definition.GetFloat("secondary_projectile.lifetime", -1f, spellPower, wave);
+        int secondaryDamage;
+
+        if (definition.HasField("secondary_damage.amount"))
+        {
+            secondaryDamage = definition.GetInt("secondary_damage.amount", 5, spellPower, wave);
+        }
+        else
+        {
+            secondaryDamage = definition.GetInt("secondary_damage", 5, spellPower, wave);
+        }
+
+        secondaryDamage = Mathf.Max(1, secondaryDamage);
+
+        Damage.Type secondaryDamageType = definition.HasField("secondary_damage.type")
+            ? definition.GetDamageType("secondary_damage.type", GetDamageType())
+            : GetDamageType();
+
+        for (int i = 0; i < totalShots; i++)
+        {
+            Vector3 direction = Quaternion.Euler(0, 0, 360f * i / totalShots) * Vector3.up;
+
+            if (lifetime > 0)
+            {
+                GameManager.Instance.projectileManager.CreateProjectile(sprite, trajectory, impact, direction, speed, (other, hit) => OnHit(other, hit, secondaryDamage, secondaryDamageType, context, sprite, speed), lifetime);
+            }
+            else
+            {
+                GameManager.Instance.projectileManager.CreateProjectile(sprite, trajectory, impact, direction, speed, (other, hit) => OnHit(other, hit, secondaryDamage, secondaryDamageType, context, sprite, speed));
             }
         }
     }

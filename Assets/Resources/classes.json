@@ -13,7 +13,7 @@
             "mana": "90 wave 10 * +",
             "mana_regeneration": "10",
             "spellpower": "wave 7 *",
-            "speed": "7"
+            "speed": "7 wave 3 / +"
     },
     "battlemage": {
             "sprite": 2,

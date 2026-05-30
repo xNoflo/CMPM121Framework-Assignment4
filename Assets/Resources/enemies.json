@@ -26,6 +26,13 @@
        "hp": 80,
        "speed": 2,
        "damage": 15
+   },
+   {
+       "name": "toad",
+       "sprite": 13,
+       "hp": 20,
+       "speed": 10,
+       "damage": 20
    }
  
 ]

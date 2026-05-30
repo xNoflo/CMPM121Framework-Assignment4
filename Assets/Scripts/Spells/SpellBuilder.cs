@@ -19,12 +19,17 @@ public class SpellBuilder
         "echo",
         "focused",
         "heavy",
-        "fracturing"
+        "fracturing",
+        "stun",
+        "triple_splitter",
+        "add_mana"
     };
     private static readonly List<string> IMPLEMENTED_BASE_IDS = new List<string>
     {
         "arcane_bolt",
-        "magic_missile"
+        "magic_missile",
+        "arcane_blast",
+        "arcane_spray"
     };
 
     private readonly Dictionary<string, SpellDefinition> definitions = new Dictionary<string, SpellDefinition>();

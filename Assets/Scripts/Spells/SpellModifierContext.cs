@@ -12,6 +12,7 @@ public class SpellModifierContext
     public float splitDamageMultiplier = 0.5f;
     public float splitSpeedMultiplier = 0.8f;
     public float splitLifetime = 0.6f;
+    public float stunDuration = 0f;
 
     public int ApplyDamage(int baseDamage)
     {
