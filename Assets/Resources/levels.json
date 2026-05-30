@@ -11,6 +11,14 @@
                 "sequence": [1, 2],
                 "location": "random"
             },
+			{
+                "enemy": "toad",
+                "count": "1 2 wave 4 / * +",
+                "hp": "base",
+                "delay": "3",
+                "sequence": [1],
+                "location": "random"
+            },
             {
                 "enemy": "skeleton",
                 "count": "wave 3 /",
@@ -37,6 +45,14 @@
                 "hp": "25 wave *",
                 "delay": "5",
                 "sequence": [2, 3],
+                "location": "random"
+            },
+			{
+                "enemy": "toad",
+                "count": "2 wave 2 / *",
+                "hp": "base",
+                "delay": "2",
+                "sequence": [1, 2],
                 "location": "random"
             },
             {
@@ -73,6 +89,14 @@
                 "hp": "15 wave *",
                 "delay": "5",
                 "sequence": [2, 3, 4],
+                "location": "random"
+            },
+			{
+                "enemy": "toad",
+                "count": "1 2 wave 2 / * +",
+                "hp": "base",
+                "delay": "2",
+                "sequence": [2],
                 "location": "random"
             },
             {
