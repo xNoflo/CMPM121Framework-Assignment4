@@ -8,6 +8,7 @@ using System.Linq;
 public class PlayerController : MonoBehaviour
 {
     public Hittable hp;
+    public float healingOverTime = 0f;
     public HealthBar healthui;
     public ManaBar manaui;
     public SpellCaster spellcaster;
@@ -30,6 +31,8 @@ public class PlayerController : MonoBehaviour
     {
         unit = GetComponent<Unit>();
         GameManager.Instance.player = gameObject;
+        
+        InvokeRepeating("HealingOverTime", 0, 1);
     }
 
     public void StartLevel(string classId = DEFAULT_CLASS_ID)
@@ -44,7 +47,7 @@ public class PlayerController : MonoBehaviour
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
         StartCoroutine(spellcaster.ManaRegeneration());
-
+    
         hp = new Hittable(100, Hittable.Team.PLAYER, gameObject);
         hp.OnDeath += Die;
         hp.team = Hittable.Team.PLAYER;
@@ -91,11 +94,18 @@ public class PlayerController : MonoBehaviour
         }
 
         relics.Add(relic);
-        relic.Initialize(this);
+        relic.Activate(this);
         EventBus.Instance.DoRelicPickup(relic);
         return true;
     }
 
+    // in amount per second
+    public void HealingOverTime()
+    {
+        if (hp == null) return;
+        hp.Heal(healingOverTime);
+    }
+    
     public int GetRelicSpellPowerBonus()
     {
         return activeRelicSpellPowerBonuses.Values.Sum();
@@ -181,7 +191,7 @@ public class PlayerController : MonoBehaviour
         ApplyMovementInput();
         StartCoroutine(RemoveTemporarySpeedBoostAfterDelay(source, generation, duration));
     }
-
+    
     IEnumerator RemoveTemporarySpeedBoostAfterDelay(object source, int generation, float duration)
     {
         yield return new WaitForSeconds(duration);
@@ -231,7 +241,7 @@ public class PlayerController : MonoBehaviour
     {
         foreach (Relic relic in relics)
         {
-            relic?.Cleanup();
+            relic?.Deactivate();
         }
 
         relics.Clear();

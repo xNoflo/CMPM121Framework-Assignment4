@@ -23,6 +23,7 @@ public class EventBus
     public event Action OnPlayerStoppedMoving;
     public event Action<Spell> OnSpellCast;
     public event Action<Relic> OnRelicPickup;
+    public event Action<float, Hittable> OnNotTakingDamage;
     
     public void DoDamage(Vector3 where, Damage dmg, Hittable target)
     {
@@ -68,5 +69,9 @@ public class EventBus
     {
         OnRelicPickup?.Invoke(relic);
     }
-
+    
+    public void DoNotTakingDamage(float time, Hittable source)
+    {
+        OnNotTakingDamage?.Invoke(time, source);
+    }
 }
