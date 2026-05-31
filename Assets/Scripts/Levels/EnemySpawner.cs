@@ -19,13 +19,11 @@ public class EnemySpawner : MonoBehaviour
     private List<Enemy> enemies = new List<Enemy>();
     private Dictionary<string, Enemy> enemiesByName = new Dictionary<string, Enemy>();
     private List<LevelDefinition> levels = new List<LevelDefinition>();
-    private List<string> playerClasses = new List<string>();
+
     private List<MenuSelectorController> classButtons = new List<MenuSelectorController>();
     private LevelDefinition selectedLevel;
-    private string selectedClassId = "mage";
     private int currentWave = 0;
     public int CurrentWave { get { return currentWave; } }
-    public string SelectedClassId { get { return selectedClassId; } }
 
     // Levels with waves <= 0 are treated as endless.
     public bool IsCurrentLevelComplete
@@ -41,7 +39,6 @@ public class EnemySpawner : MonoBehaviour
         GameManager.Instance.LoadRelics();
         LoadEnemies();
         LoadLevels();
-        LoadPlayerClasses();
         CreateMenuButtons();
     }
 
@@ -68,62 +65,27 @@ public class EnemySpawner : MonoBehaviour
         Debug.Log($"Loaded {levels.Count} level definitions.");
     }
 
-    private void LoadPlayerClasses()
-    {
-        TextAsset classJson = Resources.Load<TextAsset>("classes");
-
-        if (classJson == null)
-        {
-            Debug.LogError("Could not find classes.json in Assets/Resources.");
-            playerClasses = new List<string> { selectedClassId };
-            return;
-        }
-
-        try
-        {
-            JObject classRoot = JObject.Parse(classJson.text);
-            playerClasses = classRoot.Properties().Select(property => property.Name).ToList();
-        }
-        catch
-        {
-            Debug.LogError("Could not parse classes.json. Using mage as the only selectable class.");
-            playerClasses = new List<string> { selectedClassId };
-        }
-
-        if (playerClasses.Count == 0)
-        {
-            playerClasses.Add(selectedClassId);
-        }
-
-        if (!playerClasses.Contains(selectedClassId))
-        {
-            selectedClassId = playerClasses[0];
-        }
-
-        Debug.Log("Loaded " + playerClasses.Count + " player classes.");
-    }
-
     private void CreateMenuButtons()
     {
-        CreateClassButtons();
+        //CreateClassButtons();
         CreateLevelButtons();
     }
 
-    private void CreateClassButtons()
-    {
-        classButtons.Clear();
+    //private void CreateClassButtons()
+    //{
+    //    classButtons.Clear();
 
-        for (int i = 0; i < playerClasses.Count; i++)
-        {
-            GameObject selector = Instantiate(button, level_selector.transform);
-            selector.transform.localPosition = new Vector3(-170, 130 - i * 60);
+    //    for (int i = 0; i < playerClasses.Count; i++)
+    //    {
+    //        GameObject selector = Instantiate(button, level_selector.transform);
+    //        selector.transform.localPosition = new Vector3(-170, 130 - i * 60);
 
-            MenuSelectorController controller = selector.GetComponent<MenuSelectorController>();
-            controller.spawner = this;
-            controller.SetClass(playerClasses[i], playerClasses[i] == selectedClassId);
-            classButtons.Add(controller);
-        }
-    }
+    //        MenuSelectorController controller = selector.GetComponent<MenuSelectorController>();
+    //        controller.spawner = this;
+    //        controller.SetClass(playerClasses[i], playerClasses[i] == selectedClassId);
+    //        classButtons.Add(controller);
+    //    }
+    //}
 
     private void CreateLevelButtons()
     {
@@ -139,23 +101,23 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    public void SelectPlayerClass(string classId)
-    {
-        if (string.IsNullOrWhiteSpace(classId) || !playerClasses.Contains(classId))
-        {
-            Debug.LogWarning("Cannot select unknown player class: " + classId);
-            return;
-        }
+    //public void SelectPlayerClass(string classId)
+    //{
+    //    if (string.IsNullOrWhiteSpace(classId) || !playerClasses.Contains(classId))
+    //    {
+    //        Debug.LogWarning("Cannot select unknown player class: " + classId);
+    //        return;
+    //    }
 
-        selectedClassId = classId;
+    //    selectedClassId = classId;
 
-        foreach (MenuSelectorController controller in classButtons)
-        {
-            controller.SetClass(controller.classId, controller.classId == selectedClassId);
-        }
+    //    foreach (MenuSelectorController controller in classButtons)
+    //    {
+    //        controller.SetClass(controller.classId, controller.classId == selectedClassId);
+    //    }
 
-        Debug.Log("Selected player class: " + selectedClassId);
-    }
+    //    Debug.Log("Selected player class: " + selectedClassId);
+    //}
 
     void Update()
     {
@@ -177,7 +139,7 @@ public class EnemySpawner : MonoBehaviour
 
         currentWave = 0;
         level_selector.gameObject.SetActive(false);
-        GameManager.Instance.player.GetComponent<PlayerController>().StartLevel(selectedClassId);
+        //GameManager.Instance.player.GetComponent<PlayerController>().StartLevel(selectedClassId);
         StartCoroutine(SpawnWave());
     }
 

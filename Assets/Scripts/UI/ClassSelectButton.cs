@@ -8,9 +8,7 @@ public class ClassSelectButton : MonoBehaviour
 {
     public GameObject icon;
     public GameObject description;
-    public GameObject name;
-
-    public string className;
+    public new GameObject name;
 
     public void SetButtonDetails(PlayerClass data)
     {
@@ -41,8 +39,9 @@ public class ClassSelectButton : MonoBehaviour
         GameManager.Instance.playerSpriteManager.PlaceSprite(sprite, icon.GetComponent<Image>());
     }
 
-    public void SelectClass()
+    public void SelectClass(string className)
     {
-        //EventBus.Instance.ClassSelected(className);
+        Debug.Log("Selected class " + className);
+        //EventBus.Instance.DoClassSelected(className);
     }
 }

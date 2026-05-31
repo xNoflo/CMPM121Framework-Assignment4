@@ -22,5 +22,21 @@
             "mana": "120",
             "spellpower": "wave 5 *",
             "speed": "5 wave 2 / +"
+    },
+	"tank": {
+            "sprite": 2,
+            "health": "150 wave 30 * +",
+            "mana_regeneration": "15",
+            "mana": "100",
+            "spellpower": "wave 5 *",
+            "speed": "5 wave 2 / +"
+    },
+		"wizard": {
+            "sprite": 1,
+            "health": "90 wave 15 * +",
+            "mana_regeneration": "15",
+            "mana": "300 wave 40 * +",
+            "spellpower": "wave",
+            "speed": "5 wave 2 / +"
     }
 }
