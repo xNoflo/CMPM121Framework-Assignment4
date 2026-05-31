@@ -25,7 +25,7 @@ public class PlayerController : MonoBehaviour
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
-    JObject selectedClassAttributes;
+    PlayerClass selectedClassAttributes;
 
     void Start()
     {
@@ -69,13 +69,13 @@ public class PlayerController : MonoBehaviour
     {
         if (selectedClassAttributes == null) LoadPlayerClass(DEFAULT_CLASS_ID);
 
-        int maxHealth = EvaluateClassInt("health", 100, wave);
-        int maxMana = EvaluateClassInt("mana", 125, wave);
-        int manaRegeneration = EvaluateClassInt("mana_regeneration", 8, wave);
-        int spellPower = EvaluateClassInt("spellpower", 0, wave);
-        speed = EvaluateClassInt("speed", 5, wave);
+        int maxHealth = EvaluateClassInt(selectedClassAttributes.health, 100, wave);
+        int maxMana = EvaluateClassInt(selectedClassAttributes.mana, 125, wave);
+        int manaRegeneration = EvaluateClassInt(selectedClassAttributes.mana_regeneration, 8, wave);
+        int spellPower = EvaluateClassInt(selectedClassAttributes.spellpower, 0, wave);
+        speed = EvaluateClassInt(selectedClassAttributes.speed, 5, wave);
 
-        if (hp != null) hp.SetMaxHP(maxHealth);
+        hp?.SetMaxHP(maxHealth);
         spellcaster?.SetWaveStats(maxMana, manaRegeneration, spellPower, wave);
     }
 
@@ -273,7 +273,7 @@ public class PlayerController : MonoBehaviour
 
         try
         {
-            selectedClassAttributes = JObject.Parse(classJson.text)[classId] as JObject;
+            selectedClassAttributes = JObject.Parse(classJson.text)[classId].ToObject<PlayerClass>();
             if (selectedClassAttributes == null)
             {
                 Debug.LogError("Could not find player class '" + classId + "' in classes.json. Using fallback player stats.");
@@ -293,7 +293,7 @@ public class PlayerController : MonoBehaviour
     {
         if (selectedClassAttributes == null || GameManager.Instance.playerSpriteManager == null) return;
 
-        JToken spriteToken = selectedClassAttributes.SelectToken("sprite");
+        JToken spriteToken = selectedClassAttributes.sprite;
         if (spriteToken == null) return;
 
         int spriteIndex = Mathf.Max(0, spriteToken.ToObject<int>());
@@ -301,11 +301,10 @@ public class PlayerController : MonoBehaviour
         if (renderer != null) renderer.sprite = GameManager.Instance.playerSpriteManager.Get(spriteIndex);
     }
 
-    int EvaluateClassInt(string field, int defaultValue, int wave)
+    int EvaluateClassInt(string? value, int defaultValue, int wave)
     {
-        JToken token = selectedClassAttributes?.SelectToken(field);
-        if (token == null) return defaultValue;
-        return Mathf.RoundToInt(RPNEvaluatorAdapter.Evaluate(token.ToString(), new Dictionary<string, float> { { "wave", wave } }));
+        if (value == null) return defaultValue;
+        return Mathf.RoundToInt(RPNEvaluatorAdapter.Evaluate(value, new Dictionary<string, float> { { "wave", wave } }));
     }
 
     void Update()
