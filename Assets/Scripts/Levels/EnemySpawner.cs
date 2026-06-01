@@ -20,8 +20,11 @@ public class EnemySpawner : MonoBehaviour
     private Dictionary<string, Enemy> enemiesByName = new Dictionary<string, Enemy>();
     private List<LevelDefinition> levels = new List<LevelDefinition>();
 
-    private List<MenuSelectorController> classButtons = new List<MenuSelectorController>();
+    //private List<MenuSelectorController> classButtons = new List<MenuSelectorController>();
     private LevelDefinition selectedLevel;
+
+    private string selectedLevelName;
+
     private int currentWave = 0;
     public int CurrentWave { get { return currentWave; } }
 
@@ -36,10 +39,19 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
+        EventBus.Instance.OnLevelSelected += SetLevel;
+        EventBus.Instance.OnLevelStarted += StartLevel;
+
         GameManager.Instance.LoadRelics();
         LoadEnemies();
         LoadLevels();
         CreateMenuButtons();
+    }
+
+    private void SetLevel(string level)
+    {
+        level_selector.gameObject.SetActive(false);
+        selectedLevelName = level;
     }
 
     private void LoadLevels()
@@ -124,14 +136,16 @@ public class EnemySpawner : MonoBehaviour
 
     }
 
-    public void StartLevel(string levelname)
+    public void StartLevel()
     {
+        Debug.Log("aseoifheiodf");
         StopAllCoroutines();
-        selectedLevel = levels.Find(level => level.name == levelname);
+
+        selectedLevel = levels.Find(level => level.name == selectedLevelName);
 
         if (selectedLevel == null)
         {
-            Debug.LogError("Could not find level: " + levelname);
+            Debug.LogError("Could not find level: " + selectedLevelName);
             return;
         }
 
@@ -139,7 +153,7 @@ public class EnemySpawner : MonoBehaviour
 
         currentWave = 0;
         level_selector.gameObject.SetActive(false);
-        //GameManager.Instance.player.GetComponent<PlayerController>().StartLevel(selectedClassId);
+        GameManager.Instance.player.GetComponent<PlayerController>().StartLevel();
         StartCoroutine(SpawnWave());
     }
 
@@ -162,6 +176,7 @@ public class EnemySpawner : MonoBehaviour
         GameManager.Instance.state = GameManager.GameState.PREGAME;
         currentWave = 0;
         selectedLevel = null;
+        selectedLevelName = null;
 
         if (level_selector != null)
         {

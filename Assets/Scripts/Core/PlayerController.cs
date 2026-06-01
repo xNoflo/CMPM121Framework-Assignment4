@@ -25,17 +25,27 @@ public class PlayerController : MonoBehaviour
 
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
+
+    private string storedClass;
     PlayerClass selectedClassAttributes;
 
     void Start()
     {
         unit = GetComponent<Unit>();
         GameManager.Instance.player = gameObject;
-        
+
+        EventBus.Instance.OnClassSelected += SetClass;
+
+
         InvokeRepeating("HealingOverTime", 0, 1);
     }
 
-    public void StartLevel(string classId = DEFAULT_CLASS_ID)
+    public void SetClass(string className)
+    {
+        storedClass = className;
+    }
+
+    public void StartLevel()
     {
         ClearRelics();
         activeRelicSpellPowerBonuses.Clear();
@@ -43,7 +53,7 @@ public class PlayerController : MonoBehaviour
         activeRelicSpeedBonuses.Clear();
         activeRelicSpeedGenerations.Clear();
         currentMoveInput = Vector2.zero;
-        LoadPlayerClass(classId);
+        LoadPlayerClass(storedClass);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
         StartCoroutine(spellcaster.ManaRegeneration());

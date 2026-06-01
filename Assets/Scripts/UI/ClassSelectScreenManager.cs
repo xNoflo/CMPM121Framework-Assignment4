@@ -18,7 +18,6 @@ public class ClassSelectScreenManager : MonoBehaviour
 
     public ClassSelectButton[] classButtons;
 
-    private string selectedLevel;
 
     void Start()
     {
@@ -47,36 +46,35 @@ public class ClassSelectScreenManager : MonoBehaviour
 
             i++;
         }
-
-        Canvas.ForceUpdateCanvases();
     }
 
     public void HandleLevelSelected(string levelName)
     {
-        selectedLevel = levelName;
-
+        Debug.Log("fopsdjfk");
         ShowClassSelection();
     }
 
     public void ShowClassSelection()
     {
-        var classes = GameManager.Instance.playerClasses.Values.ToList();
-
-        for (int i = 0; i < classButtons.Length; i++)
-        {
-            if (i < classes.Count && classes[i] is not null)
-            {
-                classButtons[i].SetButtonDetails(classes[i]);
-            }
-        }
-
         classSelectUI.SetActive(true);
+
     }
+    //    var classes = GameManager.Instance.playerClasses.Values.ToList();
+
+    //    for (int i = 0; i < classButtons.Length; i++)
+    //    {
+    //        if (i < classes.Count && classes[i] is not null)
+    //        {
+    //            classButtons[i].SetButtonDetails(classes[i]);
+    //        }
+    //    }
+
+    //    classSelectUI.SetActive(true);
+    //}
 
     public void HandleClassSelected(string playerClass)
     {
         classSelectUI.SetActive(false);
-
-        //EventBus.Instance.StartGame(selectedLevel, playerClass);
+        EventBus.Instance.DoLevelStarted();
     }
 }

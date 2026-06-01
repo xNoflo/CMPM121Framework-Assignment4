@@ -26,6 +26,7 @@ public class EventBus
     public event Action<float, Hittable> OnNotTakingDamage;
     public event Action<string> OnLevelSelected;
     public event Action<string> OnClassSelected;
+    public event Action OnLevelStarted;
 
     public void DoDamage(Vector3 where, Damage dmg, Hittable target)
     {
@@ -85,5 +86,10 @@ public class EventBus
     public void DoClassSelected(string className)
     {
         OnClassSelected?.Invoke(className);
+    }
+
+    public void DoLevelStarted()
+    {
+        OnLevelStarted?.Invoke();
     }
 }
