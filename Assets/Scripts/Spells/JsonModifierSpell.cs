@@ -23,6 +23,13 @@ public class JsonModifierSpell : ModifierSpell
             context.projectileTrajectoryOverride = projectileTrajectory;
         }
 
+
+
+        if (modifierDefinition.id == "stun")
+        {
+            context.stunDuration = modifierDefinition.GetFloat("time", 1f, spellPower, wave);
+        }
+
         if (modifierDefinition.id == "fracturing")
         {
             context.splitOnHit = true;
@@ -43,15 +50,25 @@ public class JsonModifierSpell : ModifierSpell
             yield break;
         }
 
-        if (modifierDefinition.id == "splitter")
+        if (modifierDefinition.id == "splitter" || modifierDefinition.HasField("multishot"))
         {
+            int shotCount = Mathf.Max(2, modifierDefinition.GetInt("multishot", 2, spellPower, wave));
             float maxAngle = modifierDefinition.GetFloat("angle", 10f, spellPower, wave);
             Vector3 direction = target - where;
-            Vector3 firstDirection = RotateDirection(direction, Random.Range(-maxAngle, 0));
-            Vector3 secondDirection = RotateDirection(direction, Random.Range(0, maxAngle));
 
-            yield return innerSpell.CastWithContext(where, where + firstDirection, team, spellPower, wave, context);
-            yield return innerSpell.CastWithContext(where, where + secondDirection, team, spellPower, wave, context);
+            if (direction.sqrMagnitude <= 0)
+            {
+                direction = Vector3.right;
+            }
+
+            float startAngle = -maxAngle * (shotCount - 1) / 2f;
+
+            for (int i = 0; i < shotCount; i++)
+            {
+                Vector3 shotDirection = RotateDirection(direction, startAngle + (maxAngle * i));
+                yield return innerSpell.CastWithContext(where, where + shotDirection, team, spellPower, wave, context);
+            }
+
             yield break;
         }
 

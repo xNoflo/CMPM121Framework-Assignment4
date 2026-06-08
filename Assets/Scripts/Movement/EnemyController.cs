@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class EnemyController : MonoBehaviour
 {
+    private Unit unit;
 
     public Transform target;
     public int speed;
@@ -11,17 +12,30 @@ public class EnemyController : MonoBehaviour
     public bool dead;
 
     public float last_attack;
+    private float freezeEndTime;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         target = GameManager.Instance.player.transform;
         hp.OnDeath += Die;
         healthui.SetHealth(hp);
+        unit = GetComponent<Unit>();
+    }
+
+    public void Freeze(float time)
+    {
+        freezeEndTime = Mathf.Max(freezeEndTime, Time.time + Mathf.Max(0, time));
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (Time.time < freezeEndTime)
+        {
+            if (unit != null) unit.movement = Vector2.zero;
+            return;
+        }
+
         Vector3 direction = target.position - transform.position;
         if (direction.magnitude < 2f)
         {
@@ -29,7 +43,7 @@ public class EnemyController : MonoBehaviour
         }
         else
         {
-            GetComponent<Unit>().movement = direction.normalized * speed;
+            if (unit != null) unit.movement = direction.normalized * speed;
         }
     }
     
