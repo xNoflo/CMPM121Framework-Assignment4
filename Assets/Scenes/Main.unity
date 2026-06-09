@@ -595,7 +595,7 @@ GameObject:
   - component: {fileID: 232596021}
   - component: {fileID: 232596022}
   m_Layer: 0
-  m_Name: tilemap_packed_178
+  m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -56587,10 +56587,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1366, y: 768}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3
@@ -57283,6 +57283,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: GFXManager
       objectReference: {fileID: 0}
+    - target: {fileID: 2963255102610807039, guid: b531ed09aa5f5a847918ddac98e4bf16, type: 3}
+      propertyPath: sprites.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2963255102610807039, guid: b531ed09aa5f5a847918ddac98e4bf16, type: 3}
+      propertyPath: 'sprites.Array.data[3]'
+      value: 
+      objectReference: {fileID: -844905941, guid: e0ba5a7a2ca92e643ad58fc85d241001, type: 3}
+    - target: {fileID: 2963255102610807039, guid: b531ed09aa5f5a847918ddac98e4bf16, type: 3}
+      propertyPath: 'sprites.Array.data[4]'
+      value: 
+      objectReference: {fileID: -1076823734, guid: e0ba5a7a2ca92e643ad58fc85d241001, type: 3}
     - target: {fileID: 5489274343212671176, guid: b531ed09aa5f5a847918ddac98e4bf16, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.2238593

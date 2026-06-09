@@ -271,8 +271,11 @@ public class PlayerController : MonoBehaviour
 
     void LoadPlayerClass(string classId)
     {
+        Debug.Log("1111");
+
         if (string.IsNullOrWhiteSpace(classId)) classId = DEFAULT_CLASS_ID;
         selectedClassId = classId;
+        Debug.Log("SETTING CLASS");
 
         TextAsset classJson = Resources.Load<TextAsset>("classes");
         if (classJson == null)
@@ -290,6 +293,7 @@ public class PlayerController : MonoBehaviour
                 Debug.LogError("Could not find player class '" + classId + "' in classes.json. Using fallback player stats.");
                 return;
             }
+            Debug.Log("SETTING CLASS SPRITE");
 
             ApplyClassSprite();
         }
@@ -302,13 +306,17 @@ public class PlayerController : MonoBehaviour
 
     void ApplyClassSprite()
     {
+
         if (selectedClassAttributes == null || GameManager.Instance.playerSpriteManager == null) return;
+
+        Debug.Log("aaa" + selectedClassAttributes.sprite);
 
         JToken spriteToken = selectedClassAttributes.sprite;
         if (spriteToken == null) return;
 
         int spriteIndex = Mathf.Max(0, spriteToken.ToObject<int>());
         SpriteRenderer renderer = GetComponent<SpriteRenderer>();
+        Debug.Log("aaa" + spriteIndex);
         if (renderer != null) renderer.sprite = GameManager.Instance.playerSpriteManager.Get(spriteIndex);
     }
 
