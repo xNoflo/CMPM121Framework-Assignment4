@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour
 
         EventBus.Instance.OnClassSelected += SetClass;
 
+        EnsureCameraFollow();
 
         InvokeRepeating("HealingOverTime", 0, 1);
     }
@@ -375,5 +376,27 @@ public class PlayerController : MonoBehaviour
         return GameManager.Instance.state != GameManager.GameState.PREGAME
             && GameManager.Instance.state != GameManager.GameState.GAMEOVER
             && GameManager.Instance.state != GameManager.GameState.VICTORY;
+    }
+
+    void EnsureCameraFollow()
+    {
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            return;
+        }
+
+        SideViewCameraFollow follow = mainCamera.GetComponent<SideViewCameraFollow>();
+        if (follow == null)
+        {
+            follow = mainCamera.gameObject.AddComponent<SideViewCameraFollow>();
+        }
+
+        if (mainCamera.orthographic)
+        {
+            mainCamera.orthographicSize = 7f;
+        }
+
+        follow.target = transform;
     }
 }
