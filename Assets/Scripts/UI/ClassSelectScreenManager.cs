@@ -42,6 +42,7 @@ public class ClassSelectScreenManager : MonoBehaviour
             newButtonObj.SetButtonDetails(playerClass);
 
             Button buttonObj = newButtonObj.GetComponent<Button>();
+
             buttonObj.onClick.AddListener(() => newButtonObj.SelectClass(playerClass.name));
 
             i++;
@@ -61,6 +62,7 @@ public class ClassSelectScreenManager : MonoBehaviour
     public void HandleClassSelected(string playerClass)
     {
         classSelectUI.SetActive(false);
+        GameManager.Instance.player.GetComponent<PlayerController>().SetClass(playerClass);
         EventBus.Instance.DoLevelStarted();
     }
 }

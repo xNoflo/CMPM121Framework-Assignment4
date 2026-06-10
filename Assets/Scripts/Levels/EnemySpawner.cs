@@ -138,7 +138,6 @@ public class EnemySpawner : MonoBehaviour
 
     public void StartLevel()
     {
-        Debug.Log("aseoifheiodf");
         StopAllCoroutines();
 
         selectedLevel = levels.Find(level => level.name == selectedLevelName);

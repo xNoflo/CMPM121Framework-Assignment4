@@ -23,6 +23,8 @@ public class PlayerController : MonoBehaviour
     readonly Dictionary<object, int> activeRelicSpeedGenerations = new Dictionary<object, int>();
     Vector2 currentMoveInput;
 
+    public GameObject sprite;
+
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
 
@@ -33,8 +35,6 @@ public class PlayerController : MonoBehaviour
     {
         unit = GetComponent<Unit>();
         GameManager.Instance.player = gameObject;
-
-        EventBus.Instance.OnClassSelected += SetClass;
 
         EnsureCameraFollow();
 
@@ -54,6 +54,7 @@ public class PlayerController : MonoBehaviour
         activeRelicSpeedBonuses.Clear();
         activeRelicSpeedGenerations.Clear();
         currentMoveInput = Vector2.zero;
+
         LoadPlayerClass(storedClass);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
@@ -271,11 +272,9 @@ public class PlayerController : MonoBehaviour
 
     void LoadPlayerClass(string classId)
     {
-        Debug.Log("1111");
 
         if (string.IsNullOrWhiteSpace(classId)) classId = DEFAULT_CLASS_ID;
         selectedClassId = classId;
-        Debug.Log("SETTING CLASS");
 
         TextAsset classJson = Resources.Load<TextAsset>("classes");
         if (classJson == null)
@@ -293,7 +292,6 @@ public class PlayerController : MonoBehaviour
                 Debug.LogError("Could not find player class '" + classId + "' in classes.json. Using fallback player stats.");
                 return;
             }
-            Debug.Log("SETTING CLASS SPRITE");
 
             ApplyClassSprite();
         }
@@ -315,8 +313,7 @@ public class PlayerController : MonoBehaviour
         if (spriteToken == null) return;
 
         int spriteIndex = Mathf.Max(0, spriteToken.ToObject<int>());
-        SpriteRenderer renderer = GetComponent<SpriteRenderer>();
-        Debug.Log("aaa" + spriteIndex);
+        SpriteRenderer renderer = sprite.GetComponent<SpriteRenderer>();
         if (renderer != null) renderer.sprite = GameManager.Instance.playerSpriteManager.Get(spriteIndex);
     }
 

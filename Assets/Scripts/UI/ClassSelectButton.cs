@@ -41,7 +41,6 @@ public class ClassSelectButton : MonoBehaviour
 
     public void SelectClass(string className)
     {
-        Debug.Log("Selected class " + className);
         EventBus.Instance.DoClassSelected(className);
     }
 }
