@@ -1,27 +1,20 @@
-﻿using NUnit.Framework;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
-using Debug = UnityEngine.Debug;
 
 public class ClassSelectScreenManager : MonoBehaviour
 {
     public ClassSelectButton buttonPrefab;
     public Transform container;
-
     public GameObject classSelectUI;
-
     public ClassSelectButton[] classButtons;
-
 
     void Start()
     {
-        classSelectUI.SetActive(false);
+        if (classSelectUI != null)
+        {
+            classSelectUI.SetActive(false);
+        }
 
         CreateClassButtons();
         EventBus.Instance.OnLevelSelected += HandleLevelSelected;
@@ -30,23 +23,52 @@ public class ClassSelectScreenManager : MonoBehaviour
 
     public void CreateClassButtons()
     {
-        foreach (Transform child in container) { Destroy(child.gameObject); }
+        if (container == null)
+        {
+            Debug.LogError("ClassSelectScreenManager is missing its container reference.", this);
+            return;
+        }
 
-        int i = -1;
+        List<ClassSelectButton> availableButtons = GetAvailableButtons();
+        if (availableButtons.Count == 0 && buttonPrefab == null)
+        {
+            Debug.LogError("ClassSelectScreenManager is missing both scene buttons and a button prefab reference.", this);
+            return;
+        }
 
+        int index = 0;
         foreach (PlayerClass playerClass in GameManager.Instance.playerClasses.Values)
         {
-            ClassSelectButton newButtonObj = Instantiate(buttonPrefab, container);
-            newButtonObj.transform.localPosition = new Vector3(345 * i, newButtonObj.transform.localPosition.y, newButtonObj.transform.localPosition.z);
+            ClassSelectButton button = GetOrCreateButton(availableButtons, index);
+            if (button == null)
+            {
+                Debug.LogError("Failed to create a class select button.", this);
+                return;
+            }
 
-            newButtonObj.SetButtonDetails(playerClass);
+            button.gameObject.SetActive(true);
+            button.SetButtonDetails(playerClass);
 
-            Button buttonObj = newButtonObj.GetComponent<Button>();
+            Button uiButton = button.GetComponent<Button>();
+            if (uiButton != null)
+            {
+                uiButton.onClick.RemoveAllListeners();
+                string className = playerClass.name;
+                uiButton.onClick.AddListener(() => button.SelectClass(className));
+            }
 
-            buttonObj.onClick.AddListener(() => newButtonObj.SelectClass(playerClass.name));
-
-            i++;
+            index++;
         }
+
+        for (int i = index; i < availableButtons.Count; i++)
+        {
+            if (availableButtons[i] != null)
+            {
+                availableButtons[i].gameObject.SetActive(false);
+            }
+        }
+
+        classButtons = availableButtons.ToArray();
     }
 
     public void HandleLevelSelected(string levelName)
@@ -56,13 +78,63 @@ public class ClassSelectScreenManager : MonoBehaviour
 
     public void ShowClassSelection()
     {
-        classSelectUI.SetActive(true);
+        if (classSelectUI != null)
+        {
+            classSelectUI.SetActive(true);
+        }
     }
 
     public void HandleClassSelected(string playerClass)
     {
-        classSelectUI.SetActive(false);
+        if (classSelectUI != null)
+        {
+            classSelectUI.SetActive(false);
+        }
+
         GameManager.Instance.player.GetComponent<PlayerController>().SetClass(playerClass);
         EventBus.Instance.DoLevelStarted();
+    }
+
+    List<ClassSelectButton> GetAvailableButtons()
+    {
+        var buttons = new List<ClassSelectButton>();
+
+        if (classButtons != null)
+        {
+            foreach (ClassSelectButton button in classButtons)
+            {
+                if (button != null && !buttons.Contains(button))
+                {
+                    buttons.Add(button);
+                }
+            }
+        }
+
+        foreach (ClassSelectButton button in container.GetComponentsInChildren<ClassSelectButton>(true))
+        {
+            if (button != null && !buttons.Contains(button))
+            {
+                buttons.Add(button);
+            }
+        }
+
+        return buttons;
+    }
+
+    ClassSelectButton GetOrCreateButton(List<ClassSelectButton> buttons, int index)
+    {
+        if (index < buttons.Count)
+        {
+            return buttons[index];
+        }
+
+        if (buttonPrefab == null)
+        {
+            return null;
+        }
+
+        ClassSelectButton createdButton = Instantiate(buttonPrefab, container);
+        buttons.Add(createdButton);
+        return createdButton;
     }
 }

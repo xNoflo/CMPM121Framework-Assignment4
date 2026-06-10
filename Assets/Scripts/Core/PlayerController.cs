@@ -235,7 +235,13 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        unit.movement = currentMoveInput * GetCurrentMoveSpeed();
+        Vector2 normalizedInput = currentMoveInput;
+        if (unit.UsesPlatformerMovement)
+        {
+            normalizedInput = new Vector2(currentMoveInput.x, 0f);
+        }
+
+        unit.movement = normalizedInput * GetCurrentMoveSpeed();
     }
 
     public int EvaluateRelicAmount(string expression, int defaultValue = 0)
@@ -366,6 +372,16 @@ public class PlayerController : MonoBehaviour
         }
 
         ApplyMovementInput();
+    }
+
+    void OnJump(InputValue value)
+    {
+        if (!value.isPressed || !CanPlayerAct() || unit == null)
+        {
+            return;
+        }
+
+        unit.QueueJump();
     }
 
     void Die()
