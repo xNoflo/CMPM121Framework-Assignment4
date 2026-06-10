@@ -23,7 +23,11 @@ public class EventBus
     public event Action OnPlayerStoppedMoving;
     public event Action<Spell> OnSpellCast;
     public event Action<Relic> OnRelicPickup;
-    
+    public event Action<float, Hittable> OnNotTakingDamage;
+    public event Action<string> OnLevelSelected;
+    public event Action<string> OnClassSelected;
+    public event Action OnLevelStarted;
+
     public void DoDamage(Vector3 where, Damage dmg, Hittable target)
     {
         OnDamage?.Invoke(where, dmg, target);
@@ -68,5 +72,24 @@ public class EventBus
     {
         OnRelicPickup?.Invoke(relic);
     }
+    
+    public void DoNotTakingDamage(float time, Hittable source)
+    {
+        OnNotTakingDamage?.Invoke(time, source);
+    }
 
+    public void DoLevelSelected(string level)
+    {
+        OnLevelSelected?.Invoke(level);
+    }
+
+    public void DoClassSelected(string className)
+    {
+        OnClassSelected?.Invoke(className);
+    }
+
+    public void DoLevelStarted()
+    {
+        OnLevelStarted?.Invoke();
+    }
 }

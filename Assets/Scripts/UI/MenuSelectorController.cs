@@ -19,25 +19,26 @@ public class MenuSelectorController : MonoBehaviour
         label.text = text;
     }
 
-    public void SetClass(string id, bool selected)
-    {
-        isClassButton = true;
-        classId = id;
-        level = "";
-        ConfigureAsClassButton();
-        string className = FormatClassName(id);
-        label.text = selected ? "Class: " + className + " *" : "Class: " + className;
-    }
+    //public void SetClass(string id, bool selected)
+    //{
+    //    isClassButton = true;
+    //    classId = id;
+    //    level = "";
+    //    ConfigureAsClassButton();
+    //    string className = FormatClassName(id);
+    //    label.text = selected ? "Class: " + className + " *" : "Class: " + className;
+    //}
 
     public void StartLevel()
     {
-        if (isClassButton)
-        {
-            spawner.SelectPlayerClass(classId);
-            return;
-        }
+        EventBus.Instance.DoLevelSelected(level);
+        //if (isClassButton)
+        //{
+        //    spawner.SelectPlayerClass(classId);
+        //    return;
+        //}
 
-        spawner.StartLevel(level);
+        //spawner.StartLevel(level);
     }
 
     void ConfigureAsLevelButton()

@@ -8,6 +8,7 @@ using System.Linq;
 public class PlayerController : MonoBehaviour
 {
     public Hittable hp;
+    public float healingOverTime = 0f;
     public HealthBar healthui;
     public ManaBar manaui;
     public SpellCaster spellcaster;
@@ -22,17 +23,30 @@ public class PlayerController : MonoBehaviour
     readonly Dictionary<object, int> activeRelicSpeedGenerations = new Dictionary<object, int>();
     Vector2 currentMoveInput;
 
+    public GameObject sprite;
+
     const string DEFAULT_CLASS_ID = "mage";
     public string selectedClassId = DEFAULT_CLASS_ID;
-    JObject selectedClassAttributes;
+
+    private string storedClass;
+    PlayerClass selectedClassAttributes;
 
     void Start()
     {
         unit = GetComponent<Unit>();
         GameManager.Instance.player = gameObject;
+
+        EnsureCameraFollow();
+
+        InvokeRepeating("HealingOverTime", 0, 1);
     }
 
-    public void StartLevel(string classId = DEFAULT_CLASS_ID)
+    public void SetClass(string className)
+    {
+        storedClass = className;
+    }
+
+    public void StartLevel()
     {
         ClearRelics();
         activeRelicSpellPowerBonuses.Clear();
@@ -40,11 +54,12 @@ public class PlayerController : MonoBehaviour
         activeRelicSpeedBonuses.Clear();
         activeRelicSpeedGenerations.Clear();
         currentMoveInput = Vector2.zero;
-        LoadPlayerClass(classId);
+
+        LoadPlayerClass(storedClass);
         spellcaster = new SpellCaster(125, 8, Hittable.Team.PLAYER);
         spellcaster.playerOwner = this;
         StartCoroutine(spellcaster.ManaRegeneration());
-
+    
         hp = new Hittable(100, Hittable.Team.PLAYER, gameObject);
         hp.OnDeath += Die;
         hp.team = Hittable.Team.PLAYER;
@@ -66,13 +81,13 @@ public class PlayerController : MonoBehaviour
     {
         if (selectedClassAttributes == null) LoadPlayerClass(DEFAULT_CLASS_ID);
 
-        int maxHealth = EvaluateClassInt("health", 100, wave);
-        int maxMana = EvaluateClassInt("mana", 125, wave);
-        int manaRegeneration = EvaluateClassInt("mana_regeneration", 8, wave);
-        int spellPower = EvaluateClassInt("spellpower", 0, wave);
-        speed = EvaluateClassInt("speed", 5, wave);
+        int maxHealth = EvaluateClassInt(selectedClassAttributes.health, 100, wave);
+        int maxMana = EvaluateClassInt(selectedClassAttributes.mana, 125, wave);
+        int manaRegeneration = EvaluateClassInt(selectedClassAttributes.mana_regeneration, 8, wave);
+        int spellPower = EvaluateClassInt(selectedClassAttributes.spellpower, 0, wave);
+        speed = EvaluateClassInt(selectedClassAttributes.speed, 5, wave);
 
-        if (hp != null) hp.SetMaxHP(maxHealth);
+        hp?.SetMaxHP(maxHealth);
         spellcaster?.SetWaveStats(maxMana, manaRegeneration, spellPower, wave);
     }
 
@@ -91,11 +106,18 @@ public class PlayerController : MonoBehaviour
         }
 
         relics.Add(relic);
-        relic.Initialize(this);
+        relic.Activate(this);
         EventBus.Instance.DoRelicPickup(relic);
         return true;
     }
 
+    // in amount per second
+    public void HealingOverTime()
+    {
+        if (hp == null) return;
+        hp.Heal(healingOverTime);
+    }
+    
     public int GetRelicSpellPowerBonus()
     {
         return activeRelicSpellPowerBonuses.Values.Sum();
@@ -181,7 +203,7 @@ public class PlayerController : MonoBehaviour
         ApplyMovementInput();
         StartCoroutine(RemoveTemporarySpeedBoostAfterDelay(source, generation, duration));
     }
-
+    
     IEnumerator RemoveTemporarySpeedBoostAfterDelay(object source, int generation, float duration)
     {
         yield return new WaitForSeconds(duration);
@@ -231,7 +253,7 @@ public class PlayerController : MonoBehaviour
     {
         foreach (Relic relic in relics)
         {
-            relic?.Cleanup();
+            relic?.Deactivate();
         }
 
         relics.Clear();
@@ -250,6 +272,7 @@ public class PlayerController : MonoBehaviour
 
     void LoadPlayerClass(string classId)
     {
+
         if (string.IsNullOrWhiteSpace(classId)) classId = DEFAULT_CLASS_ID;
         selectedClassId = classId;
 
@@ -263,7 +286,7 @@ public class PlayerController : MonoBehaviour
 
         try
         {
-            selectedClassAttributes = JObject.Parse(classJson.text)[classId] as JObject;
+            selectedClassAttributes = JObject.Parse(classJson.text)[classId].ToObject<PlayerClass>();
             if (selectedClassAttributes == null)
             {
                 Debug.LogError("Could not find player class '" + classId + "' in classes.json. Using fallback player stats.");
@@ -281,21 +304,23 @@ public class PlayerController : MonoBehaviour
 
     void ApplyClassSprite()
     {
+
         if (selectedClassAttributes == null || GameManager.Instance.playerSpriteManager == null) return;
 
-        JToken spriteToken = selectedClassAttributes.SelectToken("sprite");
+        Debug.Log("aaa" + selectedClassAttributes.sprite);
+
+        JToken spriteToken = selectedClassAttributes.sprite;
         if (spriteToken == null) return;
 
         int spriteIndex = Mathf.Max(0, spriteToken.ToObject<int>());
-        SpriteRenderer renderer = GetComponent<SpriteRenderer>();
+        SpriteRenderer renderer = sprite.GetComponent<SpriteRenderer>();
         if (renderer != null) renderer.sprite = GameManager.Instance.playerSpriteManager.Get(spriteIndex);
     }
 
-    int EvaluateClassInt(string field, int defaultValue, int wave)
+    int EvaluateClassInt(string? value, int defaultValue, int wave)
     {
-        JToken token = selectedClassAttributes?.SelectToken(field);
-        if (token == null) return defaultValue;
-        return Mathf.RoundToInt(RPNEvaluatorAdapter.Evaluate(token.ToString(), new Dictionary<string, float> { { "wave", wave } }));
+        if (value == null) return defaultValue;
+        return Mathf.RoundToInt(RPNEvaluatorAdapter.Evaluate(value, new Dictionary<string, float> { { "wave", wave } }));
     }
 
     void Update()
@@ -356,5 +381,27 @@ public class PlayerController : MonoBehaviour
         return GameManager.Instance.state != GameManager.GameState.PREGAME
             && GameManager.Instance.state != GameManager.GameState.GAMEOVER
             && GameManager.Instance.state != GameManager.GameState.VICTORY;
+    }
+
+    void EnsureCameraFollow()
+    {
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            return;
+        }
+
+        SideViewCameraFollow follow = mainCamera.GetComponent<SideViewCameraFollow>();
+        if (follow == null)
+        {
+            follow = mainCamera.gameObject.AddComponent<SideViewCameraFollow>();
+        }
+
+        if (mainCamera.orthographic)
+        {
+            mainCamera.orthographicSize = 7f;
+        }
+
+        follow.target = transform;
     }
 }

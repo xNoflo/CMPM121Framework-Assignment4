@@ -184,7 +184,7 @@ public class RewardScreenManager : MonoBehaviour
         while (available.Count > 0 && choices.Count < count)
         {
             int index = Random.Range(0, available.Count);
-            choices.Add(new Relic(available[index]));
+            choices.Add(available[index]);
             available.RemoveAt(index);
         }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -6,36 +7,21 @@ public static class RelicLoader
 {
     public static List<Relic> LoadAll()
     {
-        TextAsset relicJson = Resources.Load<TextAsset>("relics");
+        // read and deserialize relics.json
+        string json = File.ReadAllText("Assets/Resources/relics.json");
+        
+        var result = JsonConvert.DeserializeObject<List<Relic>>(json);
 
-        if (relicJson == null)
+        foreach (var relic in result)
         {
-            Debug.LogError("Could not find the file relics.json in Assets/Resources.");
-            return new List<Relic>();
+            Debug.Log("Relic: " + relic.name);
+            Debug.Log("Trigger: " + relic.trigger.type + " " + " type:  " + relic.trigger.GetType().Name);
+            Debug.Log("Effect: " + relic.effect.type + " " + " type:  " + relic.effect.GetType().Name);
+            Debug.Log("-----");
         }
-
-        List<RelicDefinition> definitions = JsonConvert.DeserializeObject<List<RelicDefinition>>(relicJson.text);
-
-        if (definitions == null)
-        {
-            Debug.LogError("Could not read the relic definitions from relics.json.");
-            return new List<Relic>();
-        }
-
-        List<Relic> relics = new List<Relic>();
-
-        foreach (RelicDefinition definition in definitions)
-        {
-            if (definition == null || string.IsNullOrWhiteSpace(definition.name))
-            {
-                Debug.LogWarning("Skipping an invalid relic definition.");
-                continue;
-            }
-
-            relics.Add(new Relic(definition));
-        }
-
-        Debug.Log("Loaded " + relics.Count + " relic definitions.");
-        return relics;
+        
+        //var relicDict = result.ToDictionary(x => x.name, x => x);
+        
+        return result;
     }
 }
