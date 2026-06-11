@@ -49,6 +49,7 @@ public class SpellUIContainer : MonoBehaviour
         if (rewardSpellWaitingForReplacement != null)
         {
             player.spellcaster.ReplaceSpell(index, rewardSpellWaitingForReplacement);
+            SoundManager.PlayReward();
             rewardSpellWaitingForReplacement = null;
             if (rewardScreenManager == null) rewardScreenManager = FindFirstObjectByType<RewardScreenManager>();
             rewardScreenManager?.HideReward();

@@ -198,6 +198,7 @@ public class RewardScreenManager : MonoBehaviour
 
         if (player.spellcaster.AddSpell(rewardSpell))
         {
+            SoundManager.PlayReward();
             rewardSpell = null;
             HideReward();
             UpdateWaveEndDisplay();
@@ -218,6 +219,7 @@ public class RewardScreenManager : MonoBehaviour
 
         if (player.AddRelic(rewardRelic))
         {
+            SoundManager.PlayReward();
             rewardRelic = null;
             HideRelicChoices();
             relicChoices.Clear();

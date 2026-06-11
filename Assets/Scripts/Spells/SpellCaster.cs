@@ -56,6 +56,7 @@ public class SpellCaster
             }
 
             mana -= manaCost;
+            SoundManager.PlayShot();
             EventBus.Instance.DoSpellCast(spell);
             yield return spell.Cast(where, target, team, currentSpellPower, wave);
         }
