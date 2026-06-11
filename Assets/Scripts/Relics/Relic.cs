@@ -20,7 +20,7 @@ public class Relic
     [JsonConverter(typeof(EffectConverter))]
     public RelicEffect effect;
 
-    public RelicTrigger? endTrigger;
+    public RelicTrigger endTrigger;
 
     public void Activate(PlayerController player)
     {

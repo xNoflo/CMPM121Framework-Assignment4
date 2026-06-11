@@ -11,7 +11,6 @@ public class PlayerController : MonoBehaviour
     const string PLATFORMER_SCENE_NAME = "FinishPlatformerLevelScene";
     const float PLATFORMER_JUMP_VELOCITY = 14f;
     const float PLATFORMER_GROUND_CHECK_EXTRA_DISTANCE = 0.08f;
-    const float PLATFORMER_FALL_RECOVERY_DISTANCE = 4f;
 
     public Hittable hp;
     public float healingOverTime = 0f;
@@ -40,8 +39,6 @@ public class PlayerController : MonoBehaviour
     Collider2D bodyCollider;
     bool jumpQueued;
     PhysicsMaterial2D platformerNoFrictionMaterial;
-    Vector2 lastGroundedPosition;
-    bool hasGroundedPosition;
 
     void Start()
     {
@@ -338,7 +335,7 @@ public class PlayerController : MonoBehaviour
         if (renderer != null) renderer.sprite = GameManager.Instance.playerSpriteManager.Get(spriteIndex);
     }
 
-    int EvaluateClassInt(string? value, int defaultValue, int wave)
+    int EvaluateClassInt(string value, int defaultValue, int wave)
     {
         if (value == null) return defaultValue;
         return Mathf.RoundToInt(RPNEvaluatorAdapter.Evaluate(value, new Dictionary<string, float> { { "wave", wave } }));
@@ -523,17 +520,7 @@ public class PlayerController : MonoBehaviour
 
         if (grounded)
         {
-            lastGroundedPosition = body.position;
-            hasGroundedPosition = true;
             return;
-        }
-
-        if (hasGroundedPosition && body.position.y < lastGroundedPosition.y - PLATFORMER_FALL_RECOVERY_DISTANCE)
-        {
-            body.position = lastGroundedPosition + Vector2.up * 0.2f;
-            body.linearVelocity = Vector2.zero;
-            jumpQueued = false;
-            Physics2D.SyncTransforms();
         }
     }
 }

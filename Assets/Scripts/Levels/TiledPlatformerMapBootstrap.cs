@@ -121,16 +121,31 @@ public class TiledPlatformerMapBootstrap : MonoBehaviour
 
         if (hasCollision)
         {
-            // Slight extrusion plus composite merging closes tiny seams between neighboring tiles.
+            // Slight extrusion plus optional composite merging closes tiny seams between neighboring tiles.
             TilemapCollider2D tilemapCollider = GetOrAdd<TilemapCollider2D>(go);
             tilemapCollider.extrusionFactor = TileColliderExtrusion;
-            tilemapCollider.compositeOperation = Collider2D.CompositeOperation.Merge;
-            composite = GetOrAdd<CompositeCollider2D>(go);
-            composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
-            composite.generationType = CompositeCollider2D.GenerationType.Synchronous;
-            // Static tilemaps still need a Rigidbody2D for composite collisions to work correctly.
-            Rigidbody2D body = GetOrAdd<Rigidbody2D>(go);
-            body.bodyType = RigidbodyType2D.Static; body.simulated = true; body.gravityScale = 0f;
+            if (merged)
+            {
+                tilemapCollider.compositeOperation = Collider2D.CompositeOperation.Merge;
+                composite = GetOrAdd<CompositeCollider2D>(go);
+                if (composite != null)
+                {
+                    composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
+                    composite.generationType = CompositeCollider2D.GenerationType.Synchronous;
+                }
+
+                // Static tilemaps still need a Rigidbody2D for composite collisions to work correctly.
+                Rigidbody2D body = GetOrAdd<Rigidbody2D>(go);
+                body.bodyType = RigidbodyType2D.Static; body.simulated = true; body.gravityScale = 0f;
+            }
+            else
+            {
+                tilemapCollider.compositeOperation = Collider2D.CompositeOperation.None;
+                if (composite != null) DestroyImmediate(composite);
+
+                Rigidbody2D body = go.GetComponent<Rigidbody2D>();
+                if (body != null) DestroyImmediate(body);
+            }
         }
         else
         {
