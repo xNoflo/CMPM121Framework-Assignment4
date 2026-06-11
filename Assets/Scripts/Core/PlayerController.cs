@@ -10,6 +10,8 @@ public class PlayerController : MonoBehaviour
 {
     const string PLATFORMER_SCENE_NAME = "FinishPlatformerLevelScene";
     const float PLATFORMER_JUMP_VELOCITY = 14f;
+    const float PLATFORMER_GROUND_CHECK_EXTRA_DISTANCE = 0.08f;
+    const float PLATFORMER_FALL_RECOVERY_DISTANCE = 4f;
 
     public Hittable hp;
     public float healingOverTime = 0f;
@@ -38,6 +40,8 @@ public class PlayerController : MonoBehaviour
     Collider2D bodyCollider;
     bool jumpQueued;
     PhysicsMaterial2D platformerNoFrictionMaterial;
+    Vector2 lastGroundedPosition;
+    bool hasGroundedPosition;
 
     void Start()
     {
@@ -373,6 +377,7 @@ public class PlayerController : MonoBehaviour
             body.linearVelocity = velocity;
         }
 
+        UpdatePlatformerGroundedState();
         jumpQueued = false;
     }
 
@@ -501,5 +506,34 @@ public class PlayerController : MonoBehaviour
     void QueueJump()
     {
         jumpQueued = true;
+    }
+
+    void UpdatePlatformerGroundedState()
+    {
+        if (bodyCollider == null)
+        {
+            return;
+        }
+
+        Bounds bounds = bodyCollider.bounds;
+        Vector2 center = new Vector2(bounds.center.x, bounds.min.y);
+        Vector2 size = new Vector2(Mathf.Max(0.05f, bounds.size.x * 0.85f), PLATFORMER_GROUND_CHECK_EXTRA_DISTANCE);
+        RaycastHit2D hit = Physics2D.BoxCast(center, size, 0f, Vector2.down, PLATFORMER_GROUND_CHECK_EXTRA_DISTANCE);
+        bool grounded = hit.collider != null && hit.collider != bodyCollider && body.linearVelocity.y <= 0.1f;
+
+        if (grounded)
+        {
+            lastGroundedPosition = body.position;
+            hasGroundedPosition = true;
+            return;
+        }
+
+        if (hasGroundedPosition && body.position.y < lastGroundedPosition.y - PLATFORMER_FALL_RECOVERY_DISTANCE)
+        {
+            body.position = lastGroundedPosition + Vector2.up * 0.2f;
+            body.linearVelocity = Vector2.zero;
+            jumpQueued = false;
+            Physics2D.SyncTransforms();
+        }
     }
 }

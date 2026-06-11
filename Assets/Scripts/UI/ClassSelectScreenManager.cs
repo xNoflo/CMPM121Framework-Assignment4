@@ -11,6 +11,8 @@ using Debug = UnityEngine.Debug;
 
 public class ClassSelectScreenManager : MonoBehaviour
 {
+    const float ClassButtonSpacing = 20f;
+
     public ClassSelectButton buttonPrefab;
     public Transform container;
 
@@ -32,20 +34,29 @@ public class ClassSelectScreenManager : MonoBehaviour
     {
         foreach (Transform child in container) { Destroy(child.gameObject); }
 
-        int i = -1;
+        List<ClassSelectButton> createdButtons = new List<ClassSelectButton>();
 
         foreach (PlayerClass playerClass in GameManager.Instance.playerClasses.Values)
         {
             ClassSelectButton newButtonObj = Instantiate(buttonPrefab, container);
-            newButtonObj.transform.localPosition = new Vector3(345 * i, newButtonObj.transform.localPosition.y, newButtonObj.transform.localPosition.z);
 
             newButtonObj.SetButtonDetails(playerClass);
 
             Button buttonObj = newButtonObj.GetComponent<Button>();
 
             buttonObj.onClick.AddListener(() => newButtonObj.SelectClass(playerClass.name));
+            createdButtons.Add(newButtonObj);
+        }
 
-            i++;
+        float buttonWidth = buttonPrefab.GetComponent<RectTransform>().rect.width;
+        float totalWidth = (createdButtons.Count * buttonWidth) + (Mathf.Max(0, createdButtons.Count - 1) * ClassButtonSpacing);
+        float startX = -totalWidth / 2f + buttonWidth / 2f;
+
+        for (int i = 0; i < createdButtons.Count; i++)
+        {
+            Transform buttonTransform = createdButtons[i].transform;
+            Vector3 localPosition = buttonTransform.localPosition;
+            buttonTransform.localPosition = new Vector3(startX + (i * (buttonWidth + ClassButtonSpacing)), localPosition.y, localPosition.z);
         }
     }
 

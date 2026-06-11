@@ -391,12 +391,15 @@ public class EnemySpawner : MonoBehaviour
             return;
         }
 
-        enemyObject.transform.position = new Vector3(desiredX, hit.point.y + halfHeight + 0.05f, 0f);
-
         Rigidbody2D body = enemyObject.GetComponent<Rigidbody2D>();
         if (body != null)
         {
+            body.position = new Vector2(desiredX, hit.point.y + halfHeight + 0.05f);
             body.linearVelocity = Vector2.zero;
+        }
+        else
+        {
+            enemyObject.transform.position = new Vector3(desiredX, hit.point.y + halfHeight + 0.05f, 0f);
         }
     }
 
