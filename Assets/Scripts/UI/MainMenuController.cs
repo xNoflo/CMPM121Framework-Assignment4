@@ -29,6 +29,7 @@ public class MainMenuController : MonoBehaviour
     {
         Time.timeScale = 1f;
 
+        AutoFindSettingsUIIfNeeded();
         LoadSettings();
         ShowMainMenu();
     }
@@ -106,22 +107,26 @@ public class MainMenuController : MonoBehaviour
         if (volumeSlider != null)
         {
             volumeSlider.SetValueWithoutNotify(currentVolume);
+            volumeSlider.onValueChanged.RemoveListener(SetVolume);
             volumeSlider.onValueChanged.AddListener(SetVolume);
         }
 
         if (muteToggle != null)
         {
             muteToggle.SetIsOnWithoutNotify(muted);
+            muteToggle.onValueChanged.RemoveListener(SetMuted);
             muteToggle.onValueChanged.AddListener(SetMuted);
         }
 
         if (fullscreenToggle != null)
         {
             fullscreenToggle.SetIsOnWithoutNotify(fullscreen);
+            fullscreenToggle.onValueChanged.RemoveListener(SetFullscreen);
             fullscreenToggle.onValueChanged.AddListener(SetFullscreen);
         }
 
         Screen.fullScreen = fullscreen;
+
         ApplyAudioSettings();
         UpdateVolumeLabel();
     }
@@ -129,7 +134,15 @@ public class MainMenuController : MonoBehaviour
     private void ApplyAudioSettings()
     {
         bool muted = PlayerPrefs.GetInt(MuteKey, 0) == 1;
-        AudioListener.volume = muted ? 0f : currentVolume;
+
+        if (muted)
+        {
+            AudioListener.volume = 0f;
+        }
+        else
+        {
+            AudioListener.volume = currentVolume;
+        }
     }
 
     private void UpdateVolumeLabel()
@@ -142,9 +155,61 @@ public class MainMenuController : MonoBehaviour
         bool muted = PlayerPrefs.GetInt(MuteKey, 0) == 1;
         int percent = Mathf.RoundToInt(currentVolume * 100f);
 
-        volumeLabel.text = muted
-            ? "Volume: Muted"
-            : "Volume: " + percent + "%";
+        if (muted)
+        {
+            volumeLabel.text = "Volume: Muted";
+        }
+        else
+        {
+            volumeLabel.text = "Volume: " + percent + "%";
+        }
+    }
+
+    private void AutoFindSettingsUIIfNeeded()
+    {
+        if (settingsPanel == null)
+        {
+            return;
+        }
+
+        if (volumeSlider == null)
+        {
+            volumeSlider = settingsPanel.GetComponentInChildren<Slider>(true);
+        }
+
+        if (volumeLabel == null)
+        {
+            TextMeshProUGUI[] labels = settingsPanel.GetComponentsInChildren<TextMeshProUGUI>(true);
+
+            foreach (TextMeshProUGUI label in labels)
+            {
+                string labelName = label.name.ToLowerInvariant();
+                string labelText = label.text.ToLowerInvariant();
+
+                if (labelName.Contains("volume") || labelText.Contains("volume"))
+                {
+                    volumeLabel = label;
+                    break;
+                }
+            }
+        }
+
+        Toggle[] toggles = settingsPanel.GetComponentsInChildren<Toggle>(true);
+
+        foreach (Toggle toggle in toggles)
+        {
+            string toggleName = toggle.name.ToLowerInvariant();
+
+            if (muteToggle == null && toggleName.Contains("mute"))
+            {
+                muteToggle = toggle;
+            }
+
+            if (fullscreenToggle == null && toggleName.Contains("fullscreen"))
+            {
+                fullscreenToggle = toggle;
+            }
+        }
     }
 
     private void SetPanel(GameObject panel, bool active)
