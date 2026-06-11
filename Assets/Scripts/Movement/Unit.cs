@@ -15,7 +15,7 @@ public class Unit : MonoBehaviour
     [SerializeField] float airHorizontalDeceleration = 90f;
     [SerializeField] float gravity = 45f;
     [SerializeField] float maxFallSpeed = 22f;
-    [SerializeField] float jumpVelocity = 14f;
+    [SerializeField] float jumpVelocity = 22f;
     [SerializeField] float coyoteTime = 0.12f;
     [SerializeField] float jumpBufferTime = 0.15f;
     [SerializeField] float collisionSkin = 0.02f;

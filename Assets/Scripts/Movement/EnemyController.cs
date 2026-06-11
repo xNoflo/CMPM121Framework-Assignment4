@@ -87,20 +87,15 @@ public class EnemyController : MonoBehaviour
         {
             return;
         }
-
-        if (!IsPlatformerScene())
-        {
-            unit.movementMode = Unit.MovementMode.TopDown;
-            return;
-        }
-
-        unit.movementMode = Unit.MovementMode.Platformer;
+        
+        /*
         body.bodyType = RigidbodyType2D.Dynamic;
         body.gravityScale = 4f;
         body.freezeRotation = true;
         body.linearDamping = 0f;
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         body.interpolation = RigidbodyInterpolation2D.Interpolate;
+        */
 
         if (bodyCollider != null)
         {
@@ -140,5 +135,24 @@ public class EnemyController : MonoBehaviour
         }
 
         return new Vector2(Mathf.Sign(horizontalDelta) * speed, 0f);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        //if (!IsPlatformerScene()) return;
+
+        if (collision.gameObject.CompareTag("jump_point"))
+        {
+            if (target.position.y <= transform.position.y) return;
+            
+            if (target.position.x < transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Right) 
+            {
+                unit.QueueJump();
+            }
+            else if (target.position.x > transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Left)
+            {
+                unit.QueueJump();
+            }
+        }
     }
 }

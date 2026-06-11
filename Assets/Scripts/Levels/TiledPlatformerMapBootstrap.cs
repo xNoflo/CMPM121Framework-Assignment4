@@ -11,6 +11,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 
+/*
 [ExecuteAlways, DefaultExecutionOrder(-500)]
 public class TiledPlatformerMapBootstrap : MonoBehaviour
 {
@@ -290,3 +291,4 @@ public class TiledPlatformerMapBootstrap : MonoBehaviour
     static void EnsureEditorBootstrapExists() { if (!Application.isPlaying) EnsureBootstrapExists(); }
 #endif
 }
+*/

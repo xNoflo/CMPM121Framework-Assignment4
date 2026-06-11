@@ -6,6 +6,7 @@ TagManager:
   tags:
   - unit
   - projectile
+  - jump_point
   layers:
   - Default
   - TransparentFX
