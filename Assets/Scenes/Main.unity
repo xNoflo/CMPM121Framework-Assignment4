@@ -4254,8 +4254,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
   m_Padding:
-    m_Left: 0
-    m_Right: 0
+    m_Left: 15
+    m_Right: 15
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 1
@@ -6475,6 +6475,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   movement: {x: 0, y: 0}
   distance: 0
+  forcePlatformerMovement: 0
+  horizontalAcceleration: 90
+  horizontalDeceleration: 110
+  airHorizontalAcceleration: 75
+  airHorizontalDeceleration: 90
+  gravity: 45
+  maxFallSpeed: 22
+  jumpVelocity: 22
+  coyoteTime: 0.12
+  jumpBufferTime: 0.15
+  collisionSkin: 0.02
+  groundedProbeDistance: 0.08
+  infiniteJumpForTesting: 1
 --- !u!1 &1727109217
 GameObject:
   m_ObjectHideFlags: 0
