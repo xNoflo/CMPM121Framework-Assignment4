@@ -1,8 +1,14 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class EnemyController : MonoBehaviour
 {
+    const string PLATFORMER_SCENE_NAME = "FinishPlatformerLevelScene";
+    static PhysicsMaterial2D platformerNoFrictionMaterial;
+
     private Unit unit;
+    private Rigidbody2D body;
+    private Collider2D bodyCollider;
 
     public Transform target;
     public int speed;
@@ -20,6 +26,10 @@ public class EnemyController : MonoBehaviour
         hp.OnDeath += Die;
         healthui.SetHealth(hp);
         unit = GetComponent<Unit>();
+        body = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<Collider2D>();
+
+        ConfigureMovementModeForScene();
     }
 
     public void Freeze(float time)
@@ -36,14 +46,16 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        Vector3 direction = target.position - transform.position;
-        if (direction.magnitude < 2f)
+        Vector2 chaseMovement = GetChaseMovement();
+        Vector2 directionToTarget = target.position - transform.position;
+
+        if (directionToTarget.magnitude < 2f)
         {
             DoAttack();
         }
         else
         {
-            if (unit != null) unit.movement = direction.normalized * speed;
+            if (unit != null) unit.movement = chaseMovement;
         }
     }
     
@@ -66,6 +78,81 @@ public class EnemyController : MonoBehaviour
             GameManager.Instance.RegisterEnemyDefeated();
             EventBus.Instance.DoEnemyKilled(gameObject);
             Destroy(gameObject);
+        }
+    }
+
+    void ConfigureMovementModeForScene()
+    {
+        if (unit == null || body == null)
+        {
+            return;
+        }
+        
+        /*
+        body.bodyType = RigidbodyType2D.Dynamic;
+        body.gravityScale = 4f;
+        body.freezeRotation = true;
+        body.linearDamping = 0f;
+        body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        body.interpolation = RigidbodyInterpolation2D.Interpolate;
+        */
+
+        if (bodyCollider != null)
+        {
+            if (platformerNoFrictionMaterial == null)
+            {
+                platformerNoFrictionMaterial = new PhysicsMaterial2D("PlatformerNoFriction");
+                platformerNoFrictionMaterial.friction = 0f;
+                platformerNoFrictionMaterial.bounciness = 0f;
+            }
+
+            bodyCollider.sharedMaterial = platformerNoFrictionMaterial;
+        }
+    }
+
+    bool IsPlatformerScene()
+    {
+        return SceneManager.GetActiveScene().name == PLATFORMER_SCENE_NAME;
+    }
+
+    Vector2 GetChaseMovement()
+    {
+        if (target == null)
+        {
+            return Vector2.zero;
+        }
+
+        Vector2 directionToTarget = target.position - transform.position;
+        if (!IsPlatformerScene())
+        {
+            return directionToTarget.normalized * speed;
+        }
+
+        float horizontalDelta = directionToTarget.x;
+        if (Mathf.Abs(horizontalDelta) < 0.1f)
+        {
+            return Vector2.zero;
+        }
+
+        return new Vector2(Mathf.Sign(horizontalDelta) * speed, 0f);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        //if (!IsPlatformerScene()) return;
+
+        if (collision.gameObject.CompareTag("jump_point"))
+        {
+            if (target.position.y <= transform.position.y) return;
+            
+            if (target.position.x < transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Right) 
+            {
+                unit.QueueJump();
+            }
+            else if (target.position.x > transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Left)
+            {
+                unit.QueueJump();
+            }
         }
     }
 }

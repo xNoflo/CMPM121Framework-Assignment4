@@ -41,6 +41,7 @@ public class ClassSelectButton : MonoBehaviour
 
     public void SelectClass(string className)
     {
+        SoundManager.PlayClass();
         EventBus.Instance.DoClassSelected(className);
     }
 }

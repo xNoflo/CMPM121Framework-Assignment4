@@ -45,8 +45,8 @@ public class MenuSelectorController : MonoBehaviour
     {
         if (label == null) return;
         label.enableAutoSizing = true;
-        label.fontSizeMin = 11;
-        label.fontSizeMax = 20;
+        label.fontSizeMin = 18;
+        label.fontSizeMax = 30;
         label.alignment = TextAlignmentOptions.Center;
     }
 
