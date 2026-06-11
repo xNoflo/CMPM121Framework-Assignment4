@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering.VirtualTexturing;
 using UnityEngine.SceneManagement;
 
 public class EnemyController : MonoBehaviour
@@ -16,9 +18,20 @@ public class EnemyController : MonoBehaviour
     public Hittable hp;
     public HealthBar healthui;
     public bool dead;
-
+    
     public float last_attack;
     private float freezeEndTime;
+    public float chaseDistance = 60f;
+    
+    public enum Status
+    {
+        Idle,
+        Chase,
+        Reroute,
+        Dead
+    }
+    public Status status = Status.Idle;
+    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -28,7 +41,9 @@ public class EnemyController : MonoBehaviour
         unit = GetComponent<Unit>();
         body = GetComponent<Rigidbody2D>();
         bodyCollider = GetComponent<Collider2D>();
-
+        
+        InvokeRepeating(nameof(IdleCoroutine), 0f, 3f);
+        
         ConfigureMovementModeForScene();
     }
 
@@ -45,18 +60,31 @@ public class EnemyController : MonoBehaviour
             if (unit != null) unit.movement = Vector2.zero;
             return;
         }
-
-        Vector2 chaseMovement = GetChaseMovement();
+        
         Vector2 directionToTarget = target.position - transform.position;
-
+        
         if (directionToTarget.magnitude < 2f)
         {
             DoAttack();
         }
-        else
+        // on top of each other, but different platform
+        else if (Mathf.Abs(transform.position.y - target.position.y) > 2f &&
+                 transform.position.x - target.position.x < 2f && 
+                 status != Status.Reroute)
         {
-            if (unit != null) unit.movement = chaseMovement;
+            status = Status.Reroute;
+            StartCoroutine(RerouteCoroutine());
+        } 
+        // close and not rerouting, or close but on the same level (success reroute)
+        else if (directionToTarget.magnitude < chaseDistance && 
+                 (status != Status.Reroute || transform.position.y - target.position.y < 2f))
+        {
+            status = Status.Chase;
+            Vector2 chaseMovement = GetChaseMovement();
+            unit.movement = chaseMovement;
         }
+        
+        if (status != Status.Idle) StopCoroutine(nameof(IdleCoroutine)); 
     }
     
     void DoAttack()
@@ -67,13 +95,13 @@ public class EnemyController : MonoBehaviour
             target.gameObject.GetComponent<PlayerController>().hp.Damage(new Damage(damage, Damage.Type.PHYSICAL));
         }
     }
-
-
+    
     void Die()
     {
         if (!dead)
         {
             dead = true;
+            status = Status.Dead;
             GameManager.Instance.RemoveEnemy(gameObject);
             GameManager.Instance.RegisterEnemyDefeated();
             EventBus.Instance.DoEnemyKilled(gameObject);
@@ -137,20 +165,47 @@ public class EnemyController : MonoBehaviour
         return new Vector2(Mathf.Sign(horizontalDelta) * speed, 0f);
     }
 
+    public IEnumerator RerouteCoroutine()
+    {
+        unit.movement = new Vector2(Mathf.Sign(Random.Range(-1f, 1f)) * speed, 0f);
+        yield return new WaitForSeconds(2f);
+    }
+    
+    public void IdleCoroutine()
+    {
+        unit.movement = new Vector2(Mathf.Sign(Random.Range(-1f, 1f)) * speed, 0f);
+    }
+    
     private void OnTriggerEnter2D(Collider2D collision)
     {
         //if (!IsPlatformerScene()) return;
-
+        
         if (collision.gameObject.CompareTag("jump_point"))
         {
-            if (target.position.y <= transform.position.y) return;
+            if (status == Status.Chase)
+            {
+                if (target.position.y <= transform.position.y) return;
             
-            if (target.position.x < transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Right) 
-            {
-                unit.QueueJump();
+                if (target.position.x < transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Right) 
+                {
+                    unit.QueueJump();
+                }
+                else if (target.position.x > transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Left)
+                {
+                    unit.QueueJump();
+                }
             }
-            else if (target.position.x > transform.position.x && collision.gameObject.GetComponent<JumpPoint>().kind != JumpPoint.Direction.Left)
+            else if (status == Status.Idle)
             {
+                if (collision.gameObject.GetComponent<JumpPoint>().kind == JumpPoint.Direction.Right)
+                {
+                    unit.movement = new Vector2(speed, 0f);
+                }
+                else if (collision.gameObject.GetComponent<JumpPoint>().kind == JumpPoint.Direction.Left)
+                {
+                    unit.movement = new Vector2(-speed, 0f);
+                }
+                
                 unit.QueueJump();
             }
         }
