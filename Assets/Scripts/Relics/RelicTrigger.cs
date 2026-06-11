@@ -8,7 +8,7 @@ public abstract class RelicTrigger
 {
     public string description;
     public string type;
-    public string? amount;
+    public string amount;
     
     public Action effect;
     

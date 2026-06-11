@@ -15,6 +15,7 @@ public class EnemySpawner : MonoBehaviour
     const string PLATFORMER_SCENE_NAME = "FinishPlatformerLevelScene";
     const float PLATFORMER_SPAWN_CAST_HEIGHT = 6f;
     const float PLATFORMER_SPAWN_CAST_DISTANCE = 12f;
+    const float DIFFICULTY_BUTTON_SPACING = 82f;
 
     public Image level_selector;
     public GameObject button;
@@ -107,10 +108,12 @@ public class EnemySpawner : MonoBehaviour
     private void CreateLevelButtons()
     {
         // Build the difficulty menu from JSON so that adding a level creates a button automatically in the UI.
+        float startY = (levels.Count - 1) * DIFFICULTY_BUTTON_SPACING * 0.5f;
+
         for (int i = 0; i < levels.Count; i++)
         {
             GameObject selector = Instantiate(button, level_selector.transform);
-            selector.transform.localPosition = new Vector3(170, 130 - i * 60);
+            selector.transform.localPosition = new Vector3(0f, startY - i * DIFFICULTY_BUTTON_SPACING, 0f);
 
             MenuSelectorController controller = selector.GetComponent<MenuSelectorController>();
             controller.spawner = this;
@@ -391,12 +394,15 @@ public class EnemySpawner : MonoBehaviour
             return;
         }
 
-        enemyObject.transform.position = new Vector3(desiredX, hit.point.y + halfHeight + 0.05f, 0f);
-
         Rigidbody2D body = enemyObject.GetComponent<Rigidbody2D>();
         if (body != null)
         {
+            body.position = new Vector2(desiredX, hit.point.y + halfHeight + 0.05f);
             body.linearVelocity = Vector2.zero;
+        }
+        else
+        {
+            enemyObject.transform.position = new Vector3(desiredX, hit.point.y + halfHeight + 0.05f, 0f);
         }
     }
 

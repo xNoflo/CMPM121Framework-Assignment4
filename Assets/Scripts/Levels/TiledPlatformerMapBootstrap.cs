@@ -17,6 +17,7 @@ public class TiledPlatformerMapBootstrap : MonoBehaviour
 {
     // Resource paths for the TMX map, TSX tileset metadata, and source texture.
     const string MapPath = "Maps/PlatformerLevel1Map", LegacyMapPath = "Maps/PlatformerLevel1", TilesetPath = "Maps/RoguelikeDungeonTileset", TexturePath = "Tiles/roguelikeDungeon_transparent";
+    const float TileColliderExtrusion = 0.05f;
     // Spawn filtering keeps enemies on roughly the same floor and not right on top of the player.
     const float SpawnLevelTolerance = 1.5f, MinSpawnDistanceFromPlayer = 6f;
     const int MaxEnemySpawns = 8;
@@ -121,12 +122,31 @@ public class TiledPlatformerMapBootstrap : MonoBehaviour
 
         if (hasCollision)
         {
-            // Ground uses merged collision; platforms keep separate colliders.
-            GetOrAdd<TilemapCollider2D>(go).compositeOperation = merged ? Collider2D.CompositeOperation.Merge : Collider2D.CompositeOperation.None;
-            if (merged) GetOrAdd<CompositeCollider2D>(go); else if (composite != null) DestroyImmediate(composite);
-            // Static tilemaps still need a kinematic Rigidbody2D for composite collisions to work correctly.
-            Rigidbody2D body = GetOrAdd<Rigidbody2D>(go);
-            body.bodyType = RigidbodyType2D.Kinematic; body.simulated = true; body.gravityScale = 0f;
+            // Slight extrusion plus optional composite merging closes tiny seams between neighboring tiles.
+            TilemapCollider2D tilemapCollider = GetOrAdd<TilemapCollider2D>(go);
+            tilemapCollider.extrusionFactor = TileColliderExtrusion;
+            if (merged)
+            {
+                tilemapCollider.compositeOperation = Collider2D.CompositeOperation.Merge;
+                composite = GetOrAdd<CompositeCollider2D>(go);
+                if (composite != null)
+                {
+                    composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
+                    composite.generationType = CompositeCollider2D.GenerationType.Synchronous;
+                }
+
+                // Static tilemaps still need a Rigidbody2D for composite collisions to work correctly.
+                Rigidbody2D body = GetOrAdd<Rigidbody2D>(go);
+                body.bodyType = RigidbodyType2D.Static; body.simulated = true; body.gravityScale = 0f;
+            }
+            else
+            {
+                tilemapCollider.compositeOperation = Collider2D.CompositeOperation.None;
+                if (composite != null) DestroyImmediate(composite);
+
+                Rigidbody2D body = go.GetComponent<Rigidbody2D>();
+                if (body != null) DestroyImmediate(body);
+            }
         }
         else
         {
@@ -174,7 +194,18 @@ public class TiledPlatformerMapBootstrap : MonoBehaviour
         // Move the spawned player to the map's start point and clear leftover movement.
         if (playerSpawn.HasValue && GameManager.Instance.player != null)
         {
-            GameManager.Instance.player.transform.position = playerSpawn.Value;
+            Rigidbody2D playerBody = GameManager.Instance.player.GetComponent<Rigidbody2D>();
+            if (playerBody != null)
+            {
+                playerBody.position = playerSpawn.Value;
+                playerBody.linearVelocity = Vector2.zero;
+            }
+            else
+            {
+                GameManager.Instance.player.transform.position = playerSpawn.Value;
+            }
+
+            Physics2D.SyncTransforms();
             Unit unit = GameManager.Instance.player.GetComponent<Unit>();
             if (unit != null) unit.movement = Vector2.zero;
         }

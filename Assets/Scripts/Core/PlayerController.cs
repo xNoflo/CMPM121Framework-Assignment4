@@ -4,9 +4,14 @@ using System.Collections;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
+    const string PLATFORMER_SCENE_NAME = "FinishPlatformerLevelScene";
+    const float PLATFORMER_JUMP_VELOCITY = 14f;
+    const float PLATFORMER_GROUND_CHECK_EXTRA_DISTANCE = 0.08f;
+
     public Hittable hp;
     public float healingOverTime = 0f;
     public HealthBar healthui;
@@ -30,12 +35,19 @@ public class PlayerController : MonoBehaviour
 
     private string storedClass;
     PlayerClass selectedClassAttributes;
+    Rigidbody2D body;
+    Collider2D bodyCollider;
+    bool jumpQueued;
+    PhysicsMaterial2D platformerNoFrictionMaterial;
 
     void Start()
     {
         unit = GetComponent<Unit>();
+        body = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<Collider2D>();
         GameManager.Instance.player = gameObject;
 
+        ConfigureMovementModeForScene();
         EnsureCameraFollow();
 
         InvokeRepeating("HealingOverTime", 0, 1);
@@ -340,6 +352,11 @@ public class PlayerController : MonoBehaviour
         if (keyboard.digit3Key.wasPressedThisFrame) SelectSpell(2);
         if (keyboard.digit4Key.wasPressedThisFrame) SelectSpell(3);
 
+        if (IsPlatformerScene() && keyboard.spaceKey.wasPressedThisFrame)
+        {
+            QueueJump();
+        }
+
         ApplyMovementInput();
     }
 
@@ -390,6 +407,11 @@ public class PlayerController : MonoBehaviour
         GameManager.Instance.state = GameManager.GameState.GAMEOVER;
         currentMoveInput = Vector2.zero;
         unit.movement = Vector2.zero;
+
+        if (body != null && IsPlatformerScene())
+        {
+            body.linearVelocity = Vector2.zero;
+        }
     }
 
     bool CanPlayerAct()

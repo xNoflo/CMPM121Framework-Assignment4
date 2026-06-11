@@ -9,8 +9,8 @@ public abstract class RelicEffect
 {
     public string description;
     public string type;
-    public string? amount;
-    public string? until;
+    public string amount;
+    public string until;
     
     public PlayerController player;
     
