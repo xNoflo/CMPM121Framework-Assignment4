@@ -20,7 +20,7 @@ public class Relic
     [JsonConverter(typeof(EffectConverter))]
     public RelicEffect effect;
 
-    public RelicTrigger? endTrigger;
+    public RelicTrigger endTrigger;
 
     public void Activate(PlayerController player)
     {
@@ -53,6 +53,11 @@ public class Relic
     public string GetLabel()
     {
         return name;
+    }
+
+    public string GetDescription()
+    {
+        return trigger.description + ", " + effect.description;
     }
     
     public static RelicTrigger stringToTrigger(string type)

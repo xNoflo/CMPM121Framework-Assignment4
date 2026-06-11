@@ -6,8 +6,8 @@ using System.Linq;
 
 public class RewardScreenManager : MonoBehaviour
 {
-    const float SPELL_SECTION_Y = 82f;
-    const float RELIC_SECTION_Y = -62f;
+    const float SPELL_SECTION_Y = 110f;
+    const float RELIC_SECTION_Y = -80f;
 
     public GameObject rewardUI;
 
@@ -33,14 +33,14 @@ public class RewardScreenManager : MonoBehaviour
         actionButton = rewardUI.GetComponentInChildren<Button>(true);
         actionButtonText = actionButton != null ? actionButton.GetComponentInChildren<TextMeshProUGUI>(true) : null;
 
-        statsText = CreateText("WaveStatsText", new Vector2(0, 160), new Vector2(600, 60), 24, TextAlignmentOptions.Center);
-        rewardIcon = CreateImage("RewardSpellIcon", new Vector2(-245, SPELL_SECTION_Y + 6), new Vector2(56, 56), Color.white);
-        rewardText = CreateText("RewardSpellText", new Vector2(35, SPELL_SECTION_Y), new Vector2(500, 92), 16, TextAlignmentOptions.Left);
+        statsText = CreateText("WaveStatsText", new Vector2(0, 250), new Vector2(600, 60), 28, TextAlignmentOptions.Center);
+        rewardIcon = CreateImage("RewardSpellIcon", new Vector2(-300, SPELL_SECTION_Y + 6), new Vector2(100, 100), Color.white);
+        rewardText = CreateText("RewardSpellText", new Vector2(35, SPELL_SECTION_Y), new Vector2(500, 175), 16, TextAlignmentOptions.Left);
         rewardText.enableAutoSizing = true;
         rewardText.fontSizeMin = 12;
-        rewardText.fontSizeMax = 16;
+        rewardText.fontSizeMax = 18;
         rewardText.textWrappingMode = TextWrappingModes.Normal;
-        acceptButton = CreateButton("AcceptSpellButton", new Vector2(0, 0), new Vector2(170, 38), AcceptRewardSpell, out acceptButtonText);
+        acceptButton = CreateButton("AcceptSpellButton", new Vector2(0, -20), new Vector2(170, 40), AcceptRewardSpell, out acceptButtonText);
         CreateRelicChoiceUI();
         configuredState = GameManager.GameState.PREGAME;
         HideReward();
@@ -148,7 +148,7 @@ public class RewardScreenManager : MonoBehaviour
             if (!hasChoice) continue;
 
             Relic relic = relicChoices[i];
-            relicChoiceTexts[i].text = relic.name + "\n" + relic.GetLabel();
+            relicChoiceTexts[i].text = relic.name + "\n" + relic.GetDescription();
 
             if (GameManager.Instance.relicIconManager != null)
                 GameManager.Instance.relicIconManager.PlaceSprite(relic.sprite, relicChoiceIcons[i]);
@@ -198,6 +198,7 @@ public class RewardScreenManager : MonoBehaviour
 
         if (player.spellcaster.AddSpell(rewardSpell))
         {
+            SoundManager.PlayReward();
             rewardSpell = null;
             HideReward();
             UpdateWaveEndDisplay();
@@ -218,6 +219,7 @@ public class RewardScreenManager : MonoBehaviour
 
         if (player.AddRelic(rewardRelic))
         {
+            SoundManager.PlayReward();
             rewardRelic = null;
             HideRelicChoices();
             relicChoices.Clear();
@@ -289,7 +291,7 @@ public class RewardScreenManager : MonoBehaviour
         RectTransform rect = actionButton.GetComponent<RectTransform>();
         if (rect != null)
         {
-            rect.anchoredPosition = text == "Next Wave" ? new Vector2(0, -190) : new Vector2(0, -105);
+            rect.anchoredPosition = text == "Next Wave" ? new Vector2(0, -265) : new Vector2(0, -105);
         }
         actionButton.onClick.AddListener(action);
     }
@@ -320,14 +322,14 @@ public class RewardScreenManager : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             int choiceIndex = i;
-            float x = -230 + i * 230;
+            float x = -275 + i * 275;
             relicChoiceIcons[i] = CreateImage("RelicChoiceIcon" + i, new Vector2(x, RELIC_SECTION_Y + 8), new Vector2(44, 44), Color.white);
-            relicChoiceTexts[i] = CreateText("RelicChoiceText" + i, new Vector2(x, RELIC_SECTION_Y - 38), new Vector2(180, 82), 13, TextAlignmentOptions.Center);
+            relicChoiceTexts[i] = CreateText("RelicChoiceText" + i, new Vector2(x, RELIC_SECTION_Y - 50), new Vector2(250, 82), 13, TextAlignmentOptions.Center);
             relicChoiceTexts[i].enableAutoSizing = true;
             relicChoiceTexts[i].fontSizeMin = 10;
             relicChoiceTexts[i].fontSizeMax = 13;
             relicChoiceTexts[i].textWrappingMode = TextWrappingModes.Normal;
-            relicChoiceButtons[i] = CreateButton("RelicChoiceButton" + i, new Vector2(x, RELIC_SECTION_Y - 92), new Vector2(140, 34), () => AcceptRewardRelic(choiceIndex), out TextMeshProUGUI buttonText);
+            relicChoiceButtons[i] = CreateButton("RelicChoiceButton" + i, new Vector2(x, RELIC_SECTION_Y - 112), new Vector2(140, 34), () => AcceptRewardRelic(choiceIndex), out TextMeshProUGUI buttonText);
             buttonText.text = "Take Relic";
         }
     }

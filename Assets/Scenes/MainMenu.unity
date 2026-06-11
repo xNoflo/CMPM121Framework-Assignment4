@@ -3140,7 +3140,7 @@ MonoBehaviour:
   mainPanel: {fileID: 1570523338}
   settingsPanel: {fileID: 1421197254}
   creditsPanel: {fileID: 1374205415}
-  gameSceneName: Main
+  gameSceneName: FinishPlatformerLevelScene
   volumeSlider: {fileID: 40607815}
   volumeLabel: {fileID: 1156863929}
   muteToggle: {fileID: 837618659}
