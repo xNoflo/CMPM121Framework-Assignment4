@@ -46,8 +46,7 @@ public class PlayerController : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
         bodyCollider = GetComponent<Collider2D>();
         GameManager.Instance.player = gameObject;
-
-        ConfigureMovementModeForScene();
+        
         EnsureCameraFollow();
 
         InvokeRepeating("HealingOverTime", 0, 1);
@@ -352,9 +351,9 @@ public class PlayerController : MonoBehaviour
         if (keyboard.digit3Key.wasPressedThisFrame) SelectSpell(2);
         if (keyboard.digit4Key.wasPressedThisFrame) SelectSpell(3);
 
-        if (IsPlatformerScene() && keyboard.spaceKey.wasPressedThisFrame)
+        if (keyboard.spaceKey.wasPressedThisFrame)
         {
-            QueueJump();
+            unit.QueueJump();
         }
 
         ApplyMovementInput();
@@ -407,11 +406,8 @@ public class PlayerController : MonoBehaviour
         GameManager.Instance.state = GameManager.GameState.GAMEOVER;
         currentMoveInput = Vector2.zero;
         unit.movement = Vector2.zero;
-
-        if (body != null && IsPlatformerScene())
-        {
-            body.linearVelocity = Vector2.zero;
-        }
+        
+        body.linearVelocity = Vector2.zero;
     }
 
     bool CanPlayerAct()
