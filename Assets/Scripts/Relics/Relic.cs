@@ -54,6 +54,11 @@ public class Relic
     {
         return name;
     }
+
+    public string GetDescription()
+    {
+        return trigger.description + ", " + effect.description;
+    }
     
     public static RelicTrigger stringToTrigger(string type)
     {
