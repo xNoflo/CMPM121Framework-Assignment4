@@ -8,9 +8,14 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using System.Collections;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 public class EnemySpawner : MonoBehaviour
 {
+    const string PLATFORMER_SCENE_NAME = "FinishPlatformerLevelScene";
+    const float PLATFORMER_SPAWN_CAST_HEIGHT = 6f;
+    const float PLATFORMER_SPAWN_CAST_DISTANCE = 12f;
+
     public Image level_selector;
     public GameObject button;
     public GameObject enemy;
@@ -344,9 +349,16 @@ public class EnemySpawner : MonoBehaviour
     private void SpawnEnemy(Enemy enemyData, SpawnDefinition spawnDefinition, SpawnPoint spawnPoint)
     {
         // Spread enemies around the selected spawn point so that groups do not stack together/on top of each other.
-        Vector2 offset = UnityEngine.Random.insideUnitCircle * 1.8f;
+        Vector2 offset = IsPlatformerScene()
+            ? new Vector2(UnityEngine.Random.Range(-0.35f, 0.35f), 0.1f)
+            : UnityEngine.Random.insideUnitCircle * 1.8f;
         Vector3 initialPosition = spawnPoint.transform.position + new Vector3(offset.x, offset.y, 0);
         GameObject newEnemy = Instantiate(enemy, initialPosition, Quaternion.identity);
+
+        if (IsPlatformerScene())
+        {
+            SnapEnemyToPlatformerSurface(newEnemy, spawnPoint.transform.position.x + offset.x);
+        }
 
         int hp = Mathf.RoundToInt(EvaluateSpawnValue(spawnDefinition.hp, enemyData, enemyData.hp));
         int speed = Mathf.RoundToInt(EvaluateSpawnValue(spawnDefinition.speed, enemyData, enemyData.speed));
@@ -360,6 +372,37 @@ public class EnemySpawner : MonoBehaviour
         enemyController.damage = damage;
 
         GameManager.Instance.AddEnemy(newEnemy);
+    }
+
+    void SnapEnemyToPlatformerSurface(GameObject enemyObject, float desiredX)
+    {
+        if (enemyObject == null)
+        {
+            return;
+        }
+
+        Collider2D enemyCollider = enemyObject.GetComponent<Collider2D>();
+        float halfHeight = enemyCollider != null ? enemyCollider.bounds.extents.y : 0.5f;
+        Vector2 castOrigin = new Vector2(desiredX, enemyObject.transform.position.y + PLATFORMER_SPAWN_CAST_HEIGHT);
+        RaycastHit2D hit = Physics2D.Raycast(castOrigin, Vector2.down, PLATFORMER_SPAWN_CAST_DISTANCE);
+
+        if (hit.collider == null)
+        {
+            return;
+        }
+
+        enemyObject.transform.position = new Vector3(desiredX, hit.point.y + halfHeight + 0.05f, 0f);
+
+        Rigidbody2D body = enemyObject.GetComponent<Rigidbody2D>();
+        if (body != null)
+        {
+            body.linearVelocity = Vector2.zero;
+        }
+    }
+
+    bool IsPlatformerScene()
+    {
+        return SceneManager.GetActiveScene().name == PLATFORMER_SCENE_NAME;
     }
 
     private SpawnPoint PickSpawnPoint(string location)

@@ -4,9 +4,13 @@ using System.Collections;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
+    const string PLATFORMER_SCENE_NAME = "FinishPlatformerLevelScene";
+    const float PLATFORMER_JUMP_VELOCITY = 14f;
+
     public Hittable hp;
     public float healingOverTime = 0f;
     public HealthBar healthui;
@@ -30,12 +34,19 @@ public class PlayerController : MonoBehaviour
 
     private string storedClass;
     PlayerClass selectedClassAttributes;
+    Rigidbody2D body;
+    Collider2D bodyCollider;
+    bool jumpQueued;
+    PhysicsMaterial2D platformerNoFrictionMaterial;
 
     void Start()
     {
         unit = GetComponent<Unit>();
+        body = GetComponent<Rigidbody2D>();
+        bodyCollider = GetComponent<Collider2D>();
         GameManager.Instance.player = gameObject;
 
+        ConfigureMovementModeForScene();
         EnsureCameraFollow();
 
         InvokeRepeating("HealingOverTime", 0, 1);
@@ -235,6 +246,12 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        if (IsPlatformerScene())
+        {
+            unit.movement = new Vector2(currentMoveInput.x * GetCurrentMoveSpeed(), 0f);
+            return;
+        }
+
         unit.movement = currentMoveInput * GetCurrentMoveSpeed();
     }
 
@@ -334,7 +351,29 @@ public class PlayerController : MonoBehaviour
         if (keyboard.digit3Key.wasPressedThisFrame) SelectSpell(2);
         if (keyboard.digit4Key.wasPressedThisFrame) SelectSpell(3);
 
+        if (IsPlatformerScene() && keyboard.spaceKey.wasPressedThisFrame)
+        {
+            QueueJump();
+        }
+
         ApplyMovementInput();
+    }
+
+    void FixedUpdate()
+    {
+        if (!IsPlatformerScene() || body == null)
+        {
+            return;
+        }
+
+        if (jumpQueued && CanPlayerAct())
+        {
+            Vector2 velocity = body.linearVelocity;
+            velocity.y = PLATFORMER_JUMP_VELOCITY;
+            body.linearVelocity = velocity;
+        }
+
+        jumpQueued = false;
     }
 
     void SelectSpell(int index)
@@ -368,12 +407,27 @@ public class PlayerController : MonoBehaviour
         ApplyMovementInput();
     }
 
+    void OnJump(InputValue value)
+    {
+        if (!IsPlatformerScene() || !value.isPressed)
+        {
+            return;
+        }
+
+        QueueJump();
+    }
+
     void Die()
     {
         Debug.Log("You Lost");
         GameManager.Instance.state = GameManager.GameState.GAMEOVER;
         currentMoveInput = Vector2.zero;
         unit.movement = Vector2.zero;
+
+        if (body != null && IsPlatformerScene())
+        {
+            body.linearVelocity = Vector2.zero;
+        }
     }
 
     bool CanPlayerAct()
@@ -403,5 +457,49 @@ public class PlayerController : MonoBehaviour
         }
 
         follow.target = transform;
+    }
+
+    void ConfigureMovementModeForScene()
+    {
+        if (unit == null || body == null)
+        {
+            return;
+        }
+
+        if (!IsPlatformerScene())
+        {
+            unit.movementMode = Unit.MovementMode.TopDown;
+            return;
+        }
+
+        unit.movementMode = Unit.MovementMode.Platformer;
+        body.bodyType = RigidbodyType2D.Dynamic;
+        body.gravityScale = 4f;
+        body.freezeRotation = true;
+        body.linearDamping = 0f;
+        body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        body.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+        if (bodyCollider != null)
+        {
+            if (platformerNoFrictionMaterial == null)
+            {
+                platformerNoFrictionMaterial = new PhysicsMaterial2D("PlatformerNoFriction");
+                platformerNoFrictionMaterial.friction = 0f;
+                platformerNoFrictionMaterial.bounciness = 0f;
+            }
+
+            bodyCollider.sharedMaterial = platformerNoFrictionMaterial;
+        }
+    }
+
+    bool IsPlatformerScene()
+    {
+        return SceneManager.GetActiveScene().name == PLATFORMER_SCENE_NAME;
+    }
+
+    void QueueJump()
+    {
+        jumpQueued = true;
     }
 }
